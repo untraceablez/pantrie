@@ -55,11 +55,18 @@ class Settings(BaseSettings):
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
-    def parse_cors_origins(cls, v: str | list[str]) -> list[str]:
+    def parse_cors_origins(cls, v: str | list[str] | None) -> list[str]:
         """Parse CORS origins from comma-separated string or list."""
+        if v is None or v == "":
+            return ["http://localhost:3000", "http://localhost:5173"]
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
-        return v
+            # If it looks like JSON, it will be parsed by pydantic automatically
+            # If it's comma-separated, split it
+            if not v.startswith("["):
+                return [origin.strip() for origin in v.split(",") if origin.strip()]
+        if isinstance(v, list):
+            return v
+        return ["http://localhost:3000", "http://localhost:5173"]
 
     # External APIs
     OPEN_FOOD_FACTS_API_URL: str = "https://world.openfoodfacts.org/api/v2"

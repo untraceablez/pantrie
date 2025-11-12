@@ -10,7 +10,7 @@ class InventoryItemBase(BaseModel):
 
     name: str = Field(min_length=1, max_length=255)
     description: str | None = Field(None)
-    quantity: Decimal = Field(gt=0, decimal_places=2)
+    quantity: Decimal = Field(gt=0)
     unit: str | None = Field(None, max_length=50)
     category_id: int | None = None
     location_id: int | None = None
@@ -20,6 +20,14 @@ class InventoryItemBase(BaseModel):
     brand: str | None = Field(None, max_length=200)
     image_url: str | None = Field(None, max_length=500)
     notes: str | None = None
+
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity(cls, v: Decimal) -> Decimal:
+        """Validate quantity has at most 2 decimal places."""
+        if v.as_tuple().exponent < -2:
+            raise ValueError("Quantity can have at most 2 decimal places")
+        return v
 
     @field_validator("expiration_date")
     @classmethod
@@ -43,7 +51,7 @@ class InventoryItemUpdate(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = None
-    quantity: Decimal | None = Field(None, gt=0, decimal_places=2)
+    quantity: Decimal | None = Field(None, gt=0)
     unit: str | None = Field(None, max_length=50)
     category_id: int | None = None
     location_id: int | None = None
@@ -53,6 +61,14 @@ class InventoryItemUpdate(BaseModel):
     brand: str | None = Field(None, max_length=200)
     image_url: str | None = Field(None, max_length=500)
     notes: str | None = None
+
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity(cls, v: Decimal | None) -> Decimal | None:
+        """Validate quantity has at most 2 decimal places."""
+        if v is not None and v.as_tuple().exponent < -2:
+            raise ValueError("Quantity can have at most 2 decimal places")
+        return v
 
 
 class InventoryItemResponse(InventoryItemBase):
