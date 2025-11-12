@@ -31,7 +31,21 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Review against `.specify/memory/constitution.md` principles:
+
+- **I. Specification-First**: ✅ Feature has spec.md with user scenarios and acceptance criteria
+- **II. Test-First Development**: Document test strategy (contract tests for APIs, integration tests for user journeys)
+- **III. Simplicity & YAGNI**: Justify any complexity in Complexity Tracking table below
+- **IV. Observability**: Plan logging strategy for key operations and error scenarios
+- **V. User-Centric Design**: Confirm user stories map to real food/recipe management needs
+
+**Food Domain Specifics** (from constitution Technical Standards):
+- [ ] Measurement handling (metric/imperial conversions)
+- [ ] Allergen and dietary information tracking
+- [ ] Recipe scaling proportional calculations
+- [ ] Data integrity for nutrition/ingredient data
+
+**Pass/Fail**: [PASS | FAIL with justification]
 
 ## Project Structure
 

@@ -1,0 +1,862 @@
+openapi: 3.0.3
+info:
+  title: Pantrie API
+  description: |
+    Household Inventory Management System API
+
+    Features:
+    - Multi-user household inventory management
+    - Role-based access control (Admin, Editor, Viewer)
+    - Multiple item entry methods (manual, barcode, image recognition)
+    - Real-time updates via Server-Sent Events
+    - External API integration (Mealie)
+  version: 1.0.0
+  contact:
+    name: Pantrie Support
+    url: https://docs.pantrie.io
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://pantrie.example.com/api/v1
+    description: Production server
+  - url: http://localhost:8000/api/v1
+    description: Local development server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Households
+    description: Household management and membership
+  - name: Inventory
+    description: Inventory item operations
+  - name: Barcodes
+    description: Barcode lookup services
+  - name: Images
+    description: Image recognition services
+  - name: Users
+    description: User profile management
+
+paths:
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, display_name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                display_name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: John Doe
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with email/password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          access_token:
+                            type: string
+                          token_type:
+                            type: string
+                            enum: [bearer]
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /households:
+    get:
+      tags: [Households]
+      summary: List user's households
+      operationId: listHouseholds
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of households
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Household'
+    post:
+      tags: [Households]
+      summary: Create new household
+      operationId: createHousehold
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 100
+                  example: Smith Family
+                description:
+                  type: string
+                  example: Our family's inventory
+      responses:
+        '201':
+          description: Household created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Household'
+
+  /households/{householdId}:
+    parameters:
+      - name: householdId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Households]
+      summary: Get household details
+      operationId: getHousehold
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Household details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Household'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /households/{householdId}/inventory:
+    parameters:
+      - name: householdId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Inventory]
+      summary: List inventory items
+      operationId: listInventory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: category
+          in: query
+          description: Filter by category ID
+          schema:
+            type: string
+            format: uuid
+        - name: location
+          in: query
+          description: Filter by location ID
+          schema:
+            type: string
+            format: uuid
+        - name: expiring_soon
+          in: query
+          description: Only items expiring within N days
+          schema:
+            type: integer
+            minimum: 1
+        - name: sort
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [name, expiration_date, created_at, quantity]
+            default: name
+        - name: order
+          in: query
+          description: Sort order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+      responses:
+        '200':
+          description: List of inventory items
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InventoryItem'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+    post:
+      tags: [Inventory]
+      summary: Add inventory item
+      operationId: createInventoryItem
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItemCreate'
+      responses:
+        '201':
+          description: Item created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InventoryItem'
+
+  /households/{householdId}/inventory/{itemId}:
+    parameters:
+      - name: householdId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: itemId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Inventory]
+      summary: Get inventory item
+      operationId: getInventoryItem
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Item details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InventoryItem'
+    put:
+      tags: [Inventory]
+      summary: Update inventory item
+      operationId: updateInventoryItem
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryItemUpdate'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/InventoryItem'
+    delete:
+      tags: [Inventory]
+      summary: Delete inventory item
+      operationId: deleteInventoryItem
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: Item deleted
+
+  /households/{householdId}/inventory/search:
+    parameters:
+      - name: householdId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Inventory]
+      summary: Search inventory
+      operationId: searchInventory
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query (item name)
+          schema:
+            type: string
+            minLength: 1
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+        - name: location
+          in: query
+          description: Filter by location
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InventoryItem'
+
+  /barcodes/lookup:
+    post:
+      tags: [Barcodes]
+      summary: Lookup product by barcode
+      operationId: lookupBarcode
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [barcode]
+              properties:
+                barcode:
+                  type: string
+                  pattern: '^[0-9]{8,14}$'
+                  example: '0123456789012'
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/BarcodeProduct'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /images/recognize:
+    post:
+      tags: [Images]
+      summary: Recognize products from photo
+      operationId: recognizeImage
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image file (JPEG/PNG, max 5MB)
+                type:
+                  type: string
+                  enum: [product, receipt]
+                  default: product
+                  description: Recognition type
+      responses:
+        '202':
+          description: Image processing started
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          task_id:
+                            type: string
+                            format: uuid
+                          status_url:
+                            type: string
+                            format: uri
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid request data
+            details:
+              type: object
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 50
+        total_items:
+          type: integer
+          example: 234
+        total_pages:
+          type: integer
+          example: 5
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refresh_token:
+          type: string
+          format: uuid
+        token_type:
+          type: string
+          enum: [bearer]
+        expires_in:
+          type: integer
+          example: 900
+          description: Access token lifetime in seconds
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    Household:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        role:
+          type: string
+          enum: [admin, editor, viewer]
+          description: Current user's role in this household
+        member_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        household_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        quantity:
+          type: number
+          format: float
+        unit:
+          type: string
+          enum: [count, oz, lb, g, kg, ml, l]
+        category:
+          $ref: '#/components/schemas/Category'
+        location:
+          $ref: '#/components/schemas/Location'
+        expiration_date:
+          type: string
+          format: date
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        created_by:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    InventoryItemCreate:
+      type: object
+      required: [name, quantity, unit]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        quantity:
+          type: number
+          format: float
+          minimum: 0.01
+        unit:
+          type: string
+          enum: [count, oz, lb, g, kg, ml, l]
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        expiration_date:
+          type: string
+          format: date
+          nullable: true
+        barcode:
+          type: string
+          nullable: true
+        photo_url:
+          type: string
+          format: uri
+          nullable: true
+        metadata:
+          type: object
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    InventoryItemUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        quantity:
+          type: number
+          format: float
+          minimum: 0.01
+        unit:
+          type: string
+          enum: [count, oz, lb, g, kg, ml, l]
+        category_id:
+          type: string
+          format: uuid
+          nullable: true
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        expiration_date:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        icon:
+          type: string
+          nullable: true
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    BarcodeProduct:
+      type: object
+      properties:
+        barcode:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+          nullable: true
+        category:
+          type: string
+          nullable: true
+        image_url:
+          type: string
+          format: uri
+          nullable: true
+        metadata:
+          type: object
+          description: Additional product info (allergens, nutrition, etc.)
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: UNAUTHORIZED
+              message: Invalid or expired authentication token
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: FORBIDDEN
+              message: You do not have permission to perform this action
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: NOT_FOUND
+              message: The requested resource was not found
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: VALIDATION_ERROR
+              message: Request validation failed
+              details:
+                email: ["Invalid email format"]
+                password: ["Must be at least 8 characters"]
