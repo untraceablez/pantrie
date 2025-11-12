@@ -28,6 +28,47 @@ The frontend will hot-reload automatically. Try your request again.
 
 ---
 
+### Issue: CORS Preflight OPTIONS Returns 400 Bad Request
+
+**Error Message:** Backend logs show:
+```
+OPTIONS /api/v1/auth/register HTTP/1.1" 400 Bad Request
+origin=http://127.0.0.1:5173
+```
+
+**Cause:** Origin mismatch. Browsers treat `localhost` and `127.0.0.1` as different origins for CORS purposes, even though they resolve to the same IP address.
+
+**Solution:**
+
+1. **Check what origin the browser is using** in the backend logs:
+   - If you see `origin=http://127.0.0.1:5173`, but your CORS_ORIGINS only has `http://localhost:5173`, that's the problem!
+
+2. **Update `backend/.env`** to include both:
+   ```env
+   CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://127.0.0.1:5173","http://127.0.0.1:3000"]
+   ```
+
+3. **Restart the backend server**:
+   ```bash
+   # If using dev.sh, stop it (Ctrl+C) and restart
+   ./dev.sh
+
+   # Or manually:
+   cd backend
+   source venv/bin/activate
+   uvicorn src.main:app --reload
+   ```
+
+4. **Try accessing the frontend via the allowed origin**:
+   - If CORS_ORIGINS has `http://localhost:5173`, use that URL in your browser
+   - Avoid switching between `localhost` and `127.0.0.1`
+
+**Prevention**: Always include both `localhost` and `127.0.0.1` variants in CORS configuration for local development.
+
+The backend has request logging that shows the exact origin being used. Check the logs to diagnose CORS issues quickly.
+
+---
+
 ### Issue: "Failed to resolve import @tanstack/react-query-devtools"
 
 **Error Message:**

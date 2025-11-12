@@ -123,7 +123,68 @@ baseURL: `${API_BASE_URL}/api/v1`,
 
 Now all API calls will correctly target `/api/v1/auth/register`, `/api/v1/households`, etc.
 
-## Problem 6: Missing Frontend Dependency
+## Problem 6: CORS Preflight 400 Bad Request
+
+**Issue**: Browser console shows:
+```
+OPTIONS /api/v1/auth/register HTTP/1.1" 400 Bad Request
+```
+
+**Root Cause**: CORS preflight OPTIONS requests were not being handled properly.
+
+**Solution**:
+1. Enhanced CORS middleware configuration in `backend/src/main.py`
+2. Explicitly listed allowed methods including OPTIONS
+3. Added OPTIONS handler for preflight requests
+4. Added `expose_headers` and `max_age` for better CORS support
+
+**Changes Made**:
+```python
+# Enhanced CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
+)
+
+# Added explicit OPTIONS handler
+@app.options("/api/v1/{path:path}")
+async def options_handler(path: str) -> dict[str, str]:
+    return {"status": "ok"}
+```
+
+**Important**: After this fix, you must **restart the backend server** for changes to take effect.
+
+## Problem 7: CORS Origin Mismatch (localhost vs 127.0.0.1)
+
+**Issue**: Browser console shows CORS error and backend logs show:
+```
+OPTIONS /api/v1/auth/register HTTP/1.1" 400 Bad Request
+origin=http://127.0.0.1:5173
+```
+
+**Root Cause**: Browsers treat `localhost` and `127.0.0.1` as different origins for CORS purposes, even though they resolve to the same IP address. The frontend was being accessed via `http://127.0.0.1:5173` but the backend only allowed `http://localhost:5173`.
+
+**Solution**:
+1. Updated `backend/.env` to include both localhost and 127.0.0.1 variants:
+   ```env
+   CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://127.0.0.1:5173","http://127.0.0.1:3000"]
+   ```
+
+2. Added request logging middleware to help debug CORS issues
+3. Removed custom OPTIONS handler (CORSMiddleware handles it automatically)
+
+**Key Learning**: Always include both `localhost` and `127.0.0.1` in CORS origins for local development.
+
+**Verification**: After restart, OPTIONS preflight requests return 200 OK with proper CORS headers.
+
+---
+
+## Problem 8: Missing Frontend Dependency
 
 **Issue**: Frontend dev server failed with error:
 ```
@@ -156,6 +217,8 @@ All systems are now working:
 ✅ Structured logging working
 ✅ API endpoints registered
 ✅ Password hashing works correctly (bcrypt)
+✅ CORS configured for both localhost and 127.0.0.1
+✅ OPTIONS preflight requests return 200 OK
 ✅ User registration works
 ✅ User login works
 ✅ Frontend dependencies installed

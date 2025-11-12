@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { createItem } from '@/services/inventory'
+import { lookupBarcode } from '@/services/barcode'
 import { useAuthStore } from '@/store/authStore'
+import BarcodeScanner from '@/components/barcode/BarcodeScanner'
 
 interface AddItemFormProps {
   onSuccess: () => void
@@ -22,6 +24,9 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
+  const [lookingUp, setLookingUp] = useState(false)
+  const [productFound, setProductFound] = useState(false)
 
   const { user } = useAuthStore()
 
@@ -32,6 +37,37 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
       setHouseholdId(1) // TODO: Get from household context or selection
     }
   }, [user])
+
+  const handleBarcodeScanned = async (scannedBarcode: string) => {
+    setShowScanner(false)
+    setBarcode(scannedBarcode)
+    setLookingUp(true)
+    setError('')
+    setProductFound(false)
+
+    try {
+      const productInfo = await lookupBarcode(scannedBarcode)
+
+      // Populate form fields with product information
+      setName(productInfo.name || '')
+      setDescription(productInfo.description || '')
+      setBrand(productInfo.brand || '')
+
+      // Show success message
+      setProductFound(true)
+      setTimeout(() => setProductFound(false), 3000)
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setError(
+          'Product not found in database. Please enter details manually.'
+        )
+      } else {
+        setError('Failed to lookup product. Please enter details manually.')
+      }
+    } finally {
+      setLookingUp(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -74,14 +110,63 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
+    <>
+      {showScanner && (
+        <BarcodeScanner
+          onScan={handleBarcodeScanned}
+          onClose={() => setShowScanner(false)}
+        />
       )}
 
-      {/* Item Name */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Barcode Scanner Section */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-blue-900">
+                Scan Barcode (Optional)
+              </h3>
+              <p className="text-xs text-blue-700 mt-1">
+                Scan a product barcode to automatically fill in details
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowScanner(true)}
+              disabled={lookingUp}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+              </svg>
+              <span>{lookingUp ? 'Looking up...' : 'Scan Barcode'}</span>
+            </button>
+          </div>
+        </div>
+
+        {productFound && (
+          <div className="rounded-md bg-green-50 p-4">
+            <p className="text-sm text-green-800">
+              ✓ Product found! Details have been filled in. Review and adjust as needed.
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-md bg-red-50 p-4">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Item Name */}
       <div>
         <label htmlFor="name" className="block text-sm font-medium text-gray-700">
           Item Name *
@@ -240,5 +325,6 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
         </button>
       </div>
     </form>
+    </>
   )
 }
