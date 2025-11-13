@@ -1,379 +1,173 @@
-# Pantrie - Household Inventory Management
-<img src="frontend/public/pantrie-logo-light.png#gh-dark-mode-only" width="200" alt="Pantrie Logo Light">
+<div align="center">
+  <img src="frontend/public/pantrie-logo-light.png#gh-dark-mode-only" width="200" alt="Pantrie Logo">
+  <img src="frontend/public/pantrie-logo-dark.png#gh-light-mode-only" width="200" alt="Pantrie Logo">
 
-<img src="frontend/public/pantrie-logo-dark.png#gh-light-mode-only" width="200" alt="Pantrie Logo Dark">
-A modern web application for managing household inventory with multi-user support, role-based access control, and real-time updates.
+  <h1>Pantrie</h1>
+  <p><strong>A self-hosted household inventory manager and shopping companion</strong></p>
+
+  [![GitHub Release](https://img.shields.io/github/v/release/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/releases)
+  [![License](https://img.shields.io/github/license/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/blob/main/LICENSE)
+  [![GitHub Stars](https://img.shields.io/github/stars/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/stargazers)
+  [![GitHub Issues](https://img.shields.io/github/issues/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/issues)
+
+  [Demo](https://pantrie.example.com) · [Documentation](https://docs.pantrie.example.com) · [Report Bug](https://github.com/untraceablez/pantrie/issues)
+</div>
+
+---
+
+## What is Pantrie?
+
+Pantrie is a self-hosted web application for managing your household inventory. Keep track of what you have, where it's stored, and when it expires. Built with modern web technologies and designed for families and households who want to reduce waste and stay organized.
+
+Inspired by [Mealie](https://github.com/mealie-recipes/mealie), Pantrie brings the same philosophy of simple, self-hosted household management to your pantry, fridge, and storage spaces.
 
 ## Features
 
-- 🔐 User authentication with JWT tokens
-- 👥 Multi-user household management
-- 🔒 Role-based access control (Admin, Editor, Viewer)
-- 📦 Complete inventory item tracking
-- 🎨 Responsive UI with Tailwind CSS
-- 🚀 FastAPI backend with async support
-- ⚛️ React frontend with TypeScript
+- **Multi-User Households** - Share your inventory with family members, each with their own role and permissions
+- **Smart Inventory Tracking** - Track items with quantities, units, expiration dates, purchase dates, and locations
+- **Role-Based Access** - Admin, Editor, and Viewer roles to control who can modify your inventory
+- **Barcode Support** - Scan and store item barcodes for quick lookup
+- **Category & Location Management** - Organize items by category (Food, Cleaning, etc.) and location (Pantry, Fridge, etc.)
+- **Custom Allergen Tracking** - Track allergens specific to your household's needs
+- **Dark Mode** - Beautiful light and dark themes for comfortable viewing
+- **REST API** - Full API access with Swagger documentation
+- **Self-Hosted** - Your data stays with you, deploy anywhere with Docker
+
+## Screenshots
+
+*(Coming soon)*
+
+## Getting Started
+
+### Docker Deployment (Recommended)
+
+```bash
+# Using docker-compose
+git clone https://github.com/untraceablez/pantrie.git
+cd pantrie
+docker-compose up -d
+```
+
+Visit `http://localhost:5173` to start using Pantrie!
+
+### Manual Installation
+
+**Prerequisites:**
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL 16+
+- Redis 7+
+
+**Backend Setup:**
+```bash
+cd backend
+./setup.sh
+cp .env.example .env
+# Edit .env with your database configuration
+alembic upgrade head
+python -m src.db.seed
+uvicorn src.main:app --reload
+```
+
+**Frontend Setup:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Full installation instructions available in the [documentation](https://docs.pantrie.example.com).
 
 ## Tech Stack
 
-### Backend
-- **FastAPI** - Modern Python web framework
-- **SQLAlchemy** - Async ORM
-- **PostgreSQL** - Database
-- **Redis** - Caching and real-time updates
-- **Alembic** - Database migrations
-- **Structlog** - Structured logging
-
-### Frontend
-- **React 18** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **TanStack Query** - Data fetching
-- **Zustand** - State management
-- **Tailwind CSS** - Styling
-- **Axios** - HTTP client
-
-## Prerequisites
-
-- **Python 3.11+**
-- **Node.js 20+**
-- **PostgreSQL 16+**
-- **Redis 7+**
-
-## Quick Start
-
-### 1. Backend Setup
-
-```bash
-cd backend
-
-# Run the setup script (creates venv and installs dependencies)
-./setup.sh
-
-# Or manually:
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. Database Setup
-
-Make sure PostgreSQL is running and create a database:
-
-```bash
-# Using docker-compose (recommended)
-cd infrastructure
-docker-compose up -d postgres redis
-
-# Or manually create database
-psql -U postgres
-CREATE DATABASE pantrie;
-CREATE USER pantrie WITH PASSWORD 'pantrie';
-GRANT ALL PRIVILEGES ON DATABASE pantrie TO pantrie;
-```
-
-### 3. Environment Configuration
-
-Create a `.env` file in the `backend` directory:
-
-```bash
-cd backend
-cp .env.example .env
-```
-
-Edit `.env` with your configuration:
-
-```env
-# Database
-DATABASE_URL=postgresql+asyncpg://pantrie:pantrie@localhost:5432/pantrie
-
-# Redis
-REDIS_URL=redis://localhost:6379/0
-
-# Security (change in production!)
-SECRET_KEY=your-secret-key-here-change-in-production
-
-# Environment
-ENVIRONMENT=development
-DEBUG=true
-```
-
-### 4. Run Database Migrations
-
-```bash
-cd backend
-source venv/bin/activate
-
-# Run migrations
-alembic upgrade head
-
-# Seed initial data (categories and locations)
-python -m src.db.seed
-```
-
-### 5. Start Backend Server
-
-```bash
-cd backend
-source venv/bin/activate
-uvicorn src.main:app --reload
-```
-
-Backend will be available at: http://localhost:8000
-- API docs: http://localhost:8000/api/docs
-- Health check: http://localhost:8000/api/health
-
-### 6. Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm run dev
-```
-
-Frontend will be available at: http://localhost:5173
-
-## Development
-
-### Backend Commands
-
-```bash
-# Activate virtual environment
-cd backend
-source venv/bin/activate
-
-# Run server with auto-reload
-uvicorn src.main:app --reload
-
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov=src --cov-report=html
-
-# Create new migration
-alembic revision --autogenerate -m "description"
-
-# Apply migrations
-alembic upgrade head
-
-# Rollback migration
-alembic downgrade -1
-
-# Format code
-black src tests
-isort src tests
-
-# Type checking
-mypy src
-
-# Linting
-flake8 src tests
-```
-
-### Frontend Commands
-
-```bash
-cd frontend
-
-# Start dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run unit tests
-npm run test
-
-# Run E2E tests
-npm run test:e2e
-
-# Lint code
-npm run lint
-
-# Format code
-npm run format
-```
-
-## Project Structure
-
-```
-pantrie-spec/
-├── backend/
-│   ├── alembic/              # Database migrations
-│   ├── src/
-│   │   ├── api/              # API endpoints
-│   │   │   └── v1/           # API v1 routes
-│   │   ├── core/             # Core utilities (logging, security, cache)
-│   │   ├── db/               # Database (base, session, seed)
-│   │   ├── models/           # SQLAlchemy models
-│   │   ├── schemas/          # Pydantic schemas
-│   │   ├── services/         # Business logic
-│   │   ├── config.py         # Configuration
-│   │   └── main.py           # FastAPI app
-│   ├── tests/                # Backend tests
-│   ├── requirements.txt      # Python dependencies
-│   ├── requirements-dev.txt  # Dev dependencies
-│   ├── pyproject.toml        # Python project config
-│   └── setup.sh              # Setup script
-├── frontend/
-│   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── pages/            # Page components
-│   │   ├── services/         # API services
-│   │   ├── store/            # Zustand stores
-│   │   ├── types/            # TypeScript types
-│   │   ├── App.tsx           # Main app component
-│   │   └── main.tsx          # Entry point
-│   ├── tests/                # Frontend tests
-│   ├── package.json          # Node dependencies
-│   ├── vite.config.ts        # Vite config
-│   └── tailwind.config.js    # Tailwind config
-└── infrastructure/
-    └── docker-compose.yml    # Local dev services
-
-```
-
-## Using the Application
-
-### 1. Register a New Account
-
-Navigate to http://localhost:5173/register and create an account:
-- Email address
-- Username (min 3 characters)
-- Password (min 8 characters with uppercase, lowercase, and numbers)
-
-### 2. Login
-
-After registration, login at http://localhost:5173/login
-
-### 3. Create a Household
-
-Currently automatic - when you register, you'll need to create a household via API or add UI in Phase 4.
-
-### 4. Add Inventory Items
-
-Navigate to "Add New Item" and fill in the form:
-- **Required**: Item name, quantity
-- **Optional**: Description, unit, brand, dates, barcode, notes
-
-## API Documentation
-
-Once the backend is running, visit:
-- **Swagger UI**: http://localhost:8000/api/docs
-- **ReDoc**: http://localhost:8000/api/redoc
-
-### Main Endpoints
-
-**Authentication:**
-- `POST /api/v1/auth/register` - Register new user
-- `POST /api/v1/auth/login` - Login
-- `POST /api/v1/auth/refresh` - Refresh access token
-- `POST /api/v1/auth/logout` - Logout
-- `GET /api/v1/auth/me` - Get current user
-
-**Households:**
-- `POST /api/v1/households` - Create household
-- `GET /api/v1/households` - List user's households
-- `GET /api/v1/households/{id}` - Get household
-- `PUT /api/v1/households/{id}` - Update household (admin only)
-- `DELETE /api/v1/households/{id}` - Delete household (admin only)
-
-**Inventory:**
-- `POST /api/v1/inventory` - Create item (editor+)
-- `GET /api/v1/inventory/households/{id}` - List household items
-- `GET /api/v1/inventory/{id}` - Get item
-- `PUT /api/v1/inventory/{id}` - Update item (editor+)
-- `DELETE /api/v1/inventory/{id}` - Delete item (editor+)
-
-## Testing
-
-### Backend Tests
-
-```bash
-cd backend
-source venv/bin/activate
-
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Run specific test file
-pytest tests/test_auth_service.py
-
-# Run with verbose output
-pytest -v
-```
-
-### Frontend Tests
-
-```bash
-cd frontend
-
-# Run unit tests
-npm run test
-
-# Run E2E tests
-npm run test:e2e
-```
-
-## Troubleshooting
-
-### Backend Issues
-
-**Issue**: `command not found: uvicorn`
-- **Solution**: Make sure you activated the virtual environment:
-  ```bash
-  cd backend
-  source venv/bin/activate
-  ```
-
-**Issue**: `ModuleNotFoundError: No module named 'src'`
-- **Solution**: Make sure you're in the backend directory and PYTHONPATH is set correctly
-
-**Issue**: Database connection errors
-- **Solution**: Check PostgreSQL is running and credentials in `.env` are correct
-
-### Frontend Issues
-
-**Issue**: `Cannot find module '@/...'`
-- **Solution**: Make sure path aliases are configured in `tsconfig.json` and `vite.config.ts`
-
-**Issue**: CORS errors
-- **Solution**: Check that backend CORS settings in `config.py` include your frontend URL
-
-## What's Implemented (Phase 3)
-
-✅ User registration and authentication
-✅ JWT token-based authorization
-✅ Multi-user household support
-✅ Role-based access control (Admin, Editor, Viewer)
-✅ Complete inventory item CRUD operations
-✅ Form validation (client and server-side)
-✅ Error handling with custom exceptions
-✅ Structured logging
-✅ Responsive UI with Tailwind CSS
-
-## Coming Next (Phase 4)
-
-- Inventory list view with pagination
-- Search and filter functionality
-- Dashboard with statistics
-- Category and location management UI
-
-## License
-
-MIT License - see LICENSE file for details
+**Backend:**
+- FastAPI - Modern Python web framework
+- SQLAlchemy - Async ORM
+- PostgreSQL - Primary database
+- Redis - Caching and real-time updates
+- Alembic - Database migrations
+
+**Frontend:**
+- React 18 with TypeScript
+- Vite - Lightning-fast build tool
+- TanStack Query - Data fetching and caching
+- Zustand - State management
+- Tailwind CSS - Utility-first styling
+
+## Roadmap
+
+Pantrie is under active development. Here's what's planned:
+
+- [ ] Shopping list generation from low-stock items
+- [ ] Recipe integration (sync with Mealie!)
+- [ ] Barcode scanning via mobile app
+- [ ] Notification system for expiring items
+- [ ] Import/export functionality
+- [ ] Multi-language support
+- [ ] Mobile-responsive PWA
+- [ ] Grocery store price tracking
+
+See the [project board](https://github.com/untraceablez/pantrie/projects) for detailed progress.
 
 ## Contributing
 
-Contributions are welcome! Please read CONTRIBUTING.md for details.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you'd like to contribute:
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+**Non-code contributions are welcome too!** Help with documentation, bug reports, feature suggestions, and testing are all valuable.
+
+## Community
+
+- **Issues & Bug Reports:** [GitHub Issues](https://github.com/untraceablez/pantrie/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/untraceablez/pantrie/discussions)
+- **Discord:** *(Coming soon)*
+
+## API Documentation
+
+Pantrie includes a fully documented REST API. Once running, visit:
+
+- **Swagger UI:** `http://localhost:8000/api/docs`
+- **ReDoc:** `http://localhost:8000/api/redoc`
+
+## Development
+
+We use VSCode Dev Containers for a consistent development environment. If you have VSCode and Docker installed:
+
+```bash
+git clone https://github.com/untraceablez/pantrie.git
+cd pantrie
+code .
+# VSCode will prompt to reopen in container
+```
+
+For manual setup, see [DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## Inspiration
+
+Pantrie was inspired by [Mealie](https://github.com/mealie-recipes/mealie), an excellent self-hosted recipe manager. If you're using Pantrie, you should definitely check out Mealie for managing your recipes and meal planning!
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+If you find Pantrie useful, consider:
+
+- Starring the repo ⭐
+- Reporting bugs and requesting features
+- Contributing code or documentation
+- Sharing with friends who might find it useful
+
+---
+
+<div align="center">
+  Made with ❤️ for organized households everywhere
+</div>
