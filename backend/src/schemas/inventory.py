@@ -18,8 +18,10 @@ class InventoryItemBase(BaseModel):
     expiration_date: date | None = None
     barcode: str | None = Field(None, max_length=100)
     brand: str | None = Field(None, max_length=200)
-    image_url: str | None = Field(None, max_length=500)
+    image_url: str | None = None
     notes: str | None = None
+    ingredients: str | None = None
+    nutritional_info: str | None = None  # JSON string
 
     @field_validator("quantity")
     @classmethod
@@ -32,11 +34,8 @@ class InventoryItemBase(BaseModel):
     @field_validator("expiration_date")
     @classmethod
     def validate_expiration_date(cls, v: date | None, info) -> date | None:
-        """Validate that expiration date is not in the past (warning only)."""
-        if v is not None and "purchase_date" in info.data:
-            purchase_date = info.data["purchase_date"]
-            if purchase_date and v < purchase_date:
-                raise ValueError("Expiration date cannot be before purchase date")
+        """Allow expiration date even if before purchase date - warning shown in UI."""
+        # Removed validation error - frontend will show warning instead
         return v
 
 
@@ -59,8 +58,10 @@ class InventoryItemUpdate(BaseModel):
     expiration_date: date | None = None
     barcode: str | None = Field(None, max_length=100)
     brand: str | None = Field(None, max_length=200)
-    image_url: str | None = Field(None, max_length=500)
+    image_url: str | None = None
     notes: str | None = None
+    ingredients: str | None = None
+    nutritional_info: str | None = None  # JSON string
 
     @field_validator("quantity")
     @classmethod

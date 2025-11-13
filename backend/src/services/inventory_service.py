@@ -44,6 +44,8 @@ class InventoryService:
             brand=item_data.brand,
             image_url=item_data.image_url,
             notes=item_data.notes,
+            ingredients=item_data.ingredients,
+            nutritional_info=item_data.nutritional_info,
         )
 
         self.db.add(item)

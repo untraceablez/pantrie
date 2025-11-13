@@ -16,6 +16,8 @@ export interface InventoryItem {
   brand: string | null
   image_url: string | null
   notes: string | null
+  ingredients: string | null
+  nutritional_info: string | null
   created_at: string
   updated_at: string
 }
@@ -34,6 +36,8 @@ export interface CreateInventoryItemData {
   brand?: string | null
   image_url?: string | null
   notes?: string | null
+  ingredients?: string | null
+  nutritional_info?: string | null
 }
 
 export interface UpdateInventoryItemData {
@@ -49,6 +53,8 @@ export interface UpdateInventoryItemData {
   brand?: string | null
   image_url?: string | null
   notes?: string | null
+  ingredients?: string | null
+  nutritional_info?: string | null
 }
 
 export interface InventoryListParams {

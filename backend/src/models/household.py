@@ -1,6 +1,6 @@
 """Household model for multi-user inventory management."""
 from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.db.base import Base, TimestampMixin
 
@@ -13,6 +13,11 @@ class Household(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Relationships
+    allergens: Mapped[list["HouseholdAllergen"]] = relationship(
+        "HouseholdAllergen", back_populates="household", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Household(id={self.id}, name='{self.name}')>"

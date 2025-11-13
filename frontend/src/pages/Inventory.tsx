@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { listInventory, type InventoryListResponse, type InventoryItem } from '@/services/inventory'
+import { listInventory, deleteItem, type InventoryListResponse, type InventoryItem } from '@/services/inventory'
 import { listHouseholds, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
@@ -8,6 +8,7 @@ import { useThemeStore } from '@/store/themeStore'
 import InventoryList from '@/components/inventory/InventoryList'
 import SearchBar from '@/components/inventory/SearchBar'
 import EditItemModal from '@/components/inventory/EditItemModal'
+import ItemDetailModal from '@/components/inventory/ItemDetailModal'
 
 export default function Inventory() {
   const navigate = useNavigate()
@@ -21,6 +22,9 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
+  const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null)
 
   // Search and filter state
   const [search, setSearch] = useState('')
@@ -127,6 +131,41 @@ export default function Inventory() {
     setEditingItem(item)
   }
 
+  const handleDelete = (item: InventoryItem) => {
+    setDeletingItem(item)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return
+
+    setDeleteLoading(true)
+    setError('')
+
+    try {
+      await deleteItem(deletingItem.id)
+      setDeletingItem(null)
+
+      // Refresh inventory after successful delete
+      if (selectedHouseholdId) {
+        const data = await listInventory(selectedHouseholdId, {
+          page,
+          page_size: pageSize,
+          search: search || undefined,
+          category_id: categoryId,
+          location_id: selectedLocationId || undefined,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        })
+        setInventoryData(data)
+      }
+    } catch (err: any) {
+      console.error('Error deleting item:', err)
+      setError(err.response?.data?.error || 'Failed to delete item. Please try again.')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   const handleEditSuccess = () => {
     // Refresh inventory after successful edit
     if (selectedHouseholdId) {
@@ -135,7 +174,7 @@ export default function Inventory() {
         page_size: pageSize,
         search: search || undefined,
         category_id: categoryId,
-        location_id: locationId,
+        location_id: selectedLocationId || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       })
@@ -210,6 +249,38 @@ export default function Inventory() {
           </div>
         )}
 
+        {/* Location Tabs */}
+        {selectedHouseholdId && locations.length > 0 && (
+          <div className="mb-6 bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedLocationId(null)}
+                className={`px-4 py-2 rounded-md font-medium transition-colors ${
+                  selectedLocationId === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                All Items
+              </button>
+              {locations.map((location) => (
+                <button
+                  key={location.id}
+                  onClick={() => setSelectedLocationId(location.id)}
+                  className={`px-4 py-2 rounded-md font-medium transition-colors flex items-center space-x-2 ${
+                    selectedLocationId === location.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <span>{location.icon}</span>
+                  <span>{location.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="mb-6">
           <SearchBar value={search} onChange={handleSearchChange} />
@@ -251,6 +322,8 @@ export default function Inventory() {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onEdit={handleEdit}
+            onDelete={handleDelete}
+            onItemClick={setViewingItem}
           />
         )}
       </div>
@@ -262,6 +335,52 @@ export default function Inventory() {
           onClose={() => setEditingItem(null)}
           onSuccess={handleEditSuccess}
         />
+      )}
+
+      {/* Item Detail Modal */}
+      {viewingItem && (
+        <ItemDetailModal
+          item={viewingItem}
+          onClose={() => setViewingItem(null)}
+          onEdit={(item) => {
+            setViewingItem(null)
+            setEditingItem(item)
+          }}
+          onDelete={(item) => {
+            setViewingItem(null)
+            setDeletingItem(item)
+          }}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              Delete Item
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              Are you sure you want to delete <strong>{deletingItem.name}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setDeletingItem(null)}
+                disabled={deleteLoading}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                disabled={deleteLoading}
+                className="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+              >
+                {deleteLoading ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

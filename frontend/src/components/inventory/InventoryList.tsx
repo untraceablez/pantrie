@@ -12,6 +12,8 @@ interface InventoryListProps {
   sortBy: string
   sortOrder: 'asc' | 'desc'
   onEdit?: (item: InventoryItem) => void
+  onDelete?: (item: InventoryItem) => void
+  onItemClick?: (item: InventoryItem) => void
 }
 
 export default function InventoryList({
@@ -25,6 +27,8 @@ export default function InventoryList({
   sortBy,
   sortOrder,
   onEdit,
+  onDelete,
+  onItemClick,
 }: InventoryListProps) {
   const startItem = (page - 1) * pageSize + 1
   const endItem = Math.min(page * pageSize, total)
@@ -71,7 +75,7 @@ export default function InventoryList({
       {/* Items grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
         {items.map((item) => (
-          <InventoryItemCard key={item.id} item={item} onEdit={onEdit} />
+          <InventoryItemCard key={item.id} item={item} onEdit={onEdit} onDelete={onDelete} onClick={onItemClick} />
         ))}
       </div>
 

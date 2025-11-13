@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { getCurrentUser, updateCurrentUser, changePassword, uploadAvatar, User } from '../../services/user'
-import { useThemeStore, type ThemeMode } from '../../store/themeStore'
+import { useThemeStore } from '../../store/themeStore'
 
 const UserSettings: React.FC = () => {
   const { mode: themeMode, setMode: setThemeMode } = useThemeStore()

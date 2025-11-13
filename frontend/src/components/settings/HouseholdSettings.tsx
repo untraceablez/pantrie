@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { listHouseholds, updateHousehold, HouseholdWithRole } from '@/services/household'
 import { useAuthStore } from '@/store/authStore'
 import LocationManager from './LocationManager'
+import AllergenManager from './AllergenManager'
 
 export default function HouseholdSettings() {
   const { user } = useAuthStore()
@@ -188,6 +189,11 @@ export default function HouseholdSettings() {
           )}
         </form>
       </div>
+
+      {/* Allergen Manager */}
+      {selectedHouseholdId && (
+        <AllergenManager householdId={selectedHouseholdId} canEdit={canEdit} />
+      )}
 
       {/* Location Manager */}
       {selectedHouseholdId && (

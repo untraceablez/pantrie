@@ -46,8 +46,12 @@ class InventoryItem(Base, TimestampMixin):
     # Optional metadata
     barcode: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     brand: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Nutritional information (from barcode lookup)
+    ingredients: Mapped[str | None] = mapped_column(Text, nullable=True)
+    nutritional_info: Mapped[str | None] = mapped_column(Text, nullable=True)  # Stored as JSON string
 
     def __repr__(self) -> str:
         return f"<InventoryItem(id={self.id}, name='{self.name}', quantity={self.quantity})>"

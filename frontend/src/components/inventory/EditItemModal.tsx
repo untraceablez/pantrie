@@ -12,11 +12,16 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
   const [name, setName] = useState(item.name)
   const [description, setDescription] = useState(item.description || '')
   const [quantity, setQuantity] = useState(item.quantity.toString())
-  const [unit, setUnit] = useState(item.unit || 'pieces')
+  const [unit, setUnit] = useState(item.unit || 'box')
   const [locationId, setLocationId] = useState<number | null>(item.location_id)
   const [purchaseDate, setPurchaseDate] = useState(item.purchase_date || '')
   const [expirationDate, setExpirationDate] = useState(item.expiration_date || '')
   const [brand, setBrand] = useState(item.brand || '')
+  const [imageUrl, setImageUrl] = useState(item.image_url || '')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState(item.image_url || '')
+  const [ingredients, setIngredients] = useState(item.ingredients || '')
+  const [nutritionalInfo, setNutritionalInfo] = useState(item.nutritional_info || '')
   const [notes, setNotes] = useState(item.notes || '')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -41,13 +46,61 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
     setName(item.name)
     setDescription(item.description || '')
     setQuantity(item.quantity.toString())
-    setUnit(item.unit || 'pieces')
+    setUnit(item.unit || 'box')
     setLocationId(item.location_id)
     setPurchaseDate(item.purchase_date || '')
     setExpirationDate(item.expiration_date || '')
     setBrand(item.brand || '')
+    setImageUrl(item.image_url || '')
+    setImagePreview(item.image_url || '')
+    setImageFile(null)
+    setIngredients(item.ingredients || '')
+    setNutritionalInfo(item.nutritional_info || '')
     setNotes(item.notes || '')
   }, [item])
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file')
+      return
+    }
+
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      setError('Image size must be less than 10MB')
+      return
+    }
+
+    setImageFile(file)
+    setImageUrl('')
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleImageUrlChange = (url: string) => {
+    setImageUrl(url)
+    if (url.trim()) {
+      setImagePreview(url)
+      setImageFile(null)
+    } else {
+      if (!imageFile) {
+        setImagePreview('')
+      }
+    }
+  }
+
+  const handleRemoveImage = () => {
+    setImageUrl('')
+    setImageFile(null)
+    setImagePreview('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -64,19 +117,24 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
       return
     }
 
-    // Validate dates
-    if (purchaseDate && expirationDate) {
-      const purchase = new Date(purchaseDate)
-      const expiration = new Date(expirationDate)
-      if (expiration < purchase) {
-        setError('Expiration date cannot be before purchase date')
-        return
-      }
-    }
+    // No date validation - allow any dates (warning shown in UI)
 
     setLoading(true)
 
     try {
+      // Determine which image to use
+      let finalImageUrl = imageUrl || null
+
+      // If user uploaded a file, convert to base64
+      if (imageFile) {
+        finalImageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(imageFile)
+        })
+      }
+
       const updateData: UpdateInventoryItemData = {
         name: name.trim(),
         description: description.trim() || null,
@@ -86,7 +144,10 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
         purchase_date: purchaseDate || null,
         expiration_date: expirationDate || null,
         brand: brand.trim() || null,
+        image_url: finalImageUrl,
         notes: notes.trim() || null,
+        ingredients: ingredients.trim() || null,
+        nutritional_info: nutritionalInfo.trim() || null,
       }
 
       await updateItem(item.id, updateData)
@@ -192,14 +253,21 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
                   className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                   disabled={loading}
                 >
-                  <option value="pieces">Pieces</option>
+                  <option value="box">Box</option>
+                  <option value="can">Can</option>
+                  <option value="package">Package</option>
+                  <option value="bottle">Bottle</option>
+                  <option value="jar">Jar</option>
+                  <option value="kg">Kilograms</option>
+                  <option value="g">Grams</option>
                   <option value="lbs">Pounds</option>
                   <option value="oz">Ounces</option>
-                  <option value="g">Grams</option>
-                  <option value="kg">Kilograms</option>
-                  <option value="ml">Milliliters</option>
-                  <option value="l">Liters</option>
+                  <option value="L">Liters</option>
+                  <option value="mL">Milliliters</option>
                   <option value="gal">Gallons</option>
+                  <option value="cups">Cups</option>
+                  <option value="tbsp">Tablespoons</option>
+                  <option value="tsp">Teaspoons</option>
                 </select>
               </div>
             </div>
@@ -217,6 +285,69 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
                 className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 disabled={loading}
               />
+            </div>
+
+            {/* Image Upload/URL */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Item Image
+              </label>
+
+              {/* Image Preview */}
+              {imagePreview && (
+                <div className="relative inline-block">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="h-32 w-32 object-cover rounded-lg border-2 border-gray-300 dark:border-gray-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    disabled={loading}
+                    className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                    title="Remove image"
+                  >
+                    <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                      <path d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              {/* Image Input Options */}
+              <div className="space-y-2">
+                {/* File Upload */}
+                <div>
+                  <label className="flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer">
+                    <svg className="w-4 h-4 mr-2" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                      <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                      <path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    {imageFile ? 'Change Photo' : 'Upload Photo'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      onChange={handleImageFileChange}
+                      disabled={loading}
+                      className="sr-only"
+                    />
+                  </label>
+                </div>
+
+                {/* URL Input */}
+                <div>
+                  <input
+                    type="url"
+                    placeholder="Or enter image URL"
+                    className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-primary focus:ring-primary text-xs"
+                    value={imageUrl}
+                    onChange={(e) => handleImageUrlChange(e.target.value)}
+                    disabled={!!imageFile || loading}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Location */}
