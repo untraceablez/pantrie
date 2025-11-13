@@ -6,7 +6,7 @@
   <p><strong>A self-hosted household inventory manager and shopping companion</strong></p>
 
   [![GitHub Release](https://img.shields.io/github/v/release/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/releases)
-  [![License](https://img.shields.io/github/license/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/blob/main/LICENSE)
+  [![License](https://img.shields.io/github/license/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/blob/001-household-inventory/LICENSE)
   [![GitHub Stars](https://img.shields.io/github/stars/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/stargazers)
   [![GitHub Issues](https://img.shields.io/github/issues/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/issues)
 
