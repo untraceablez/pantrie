@@ -1,5 +1,7 @@
 # Pantrie - Household Inventory Management
+<img src="frontend/public/pantrie-logo-light.png#gh-dark-mode-only" width="200" alt="Pantrie Logo Light">
 
+<img src="frontend/public/pantrie-logo-dark.png#gh-light-mode-only" width="200" alt="Pantrie Logo Dark">
 A modern web application for managing household inventory with multi-user support, role-based access control, and real-time updates.
 
 ## Features
