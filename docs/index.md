@@ -1,6 +1,6 @@
 # Pantrie Documentation
 
-Welcome to the Pantrie documentation! Pantrie is a modern household inventory management system designed to help you track food items, manage expiration dates, and reduce food waste.
+Welcome to the Pantrie documentation! Pantrie is a modern household inventory management system designed to help you track food items, manage expiration dates, track allergens, nutritional information, and reduce food waste. 
 
 ## Features
 
