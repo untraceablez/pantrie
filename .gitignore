@@ -23,6 +23,7 @@ wheels/
 venv/
 ENV/
 env/
+mkvenv/
 
 # Node.js
 node_modules/
@@ -78,3 +79,6 @@ Thumbs.db
 # Misc
 .cache/
 .parcel-cache/
+
+# MkDocs
+site/

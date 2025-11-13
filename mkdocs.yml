@@ -1,0 +1,101 @@
+site_name: Pantrie Documentation
+site_description: Household inventory management system
+site_author: Pantrie Team
+site_url: https://untraceablez.github.io/pantrie-spec/
+
+repo_name: pantrie-spec
+repo_url: https://github.com/untraceablez/pantrie-spec
+edit_uri: edit/main/docs/
+
+# Development server configuration
+dev_addr: '127.0.0.1:8001'  # Use port 8001 to avoid conflict with API on port 8000
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - tables
+  - def_list
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quick-start.md
+      - Configuration: getting-started/configuration.md
+  - User Guide:
+      - Overview: user-guide/overview.md
+      - Households: user-guide/households.md
+      - Inventory Management: user-guide/inventory.md
+      - Locations: user-guide/locations.md
+      - Barcode Scanning: user-guide/barcode-scanning.md
+      - Custom Allergens: user-guide/allergens.md
+  - API Documentation:
+      - Overview: api/overview.md
+      - Authentication: api/authentication.md
+      - Endpoints: api/endpoints.md
+  - Development:
+      - Architecture: development/architecture.md
+      - Backend Setup: development/backend.md
+      - Frontend Setup: development/frontend.md
+      - Database: development/database.md
+      - Contributing: development/contributing.md
+  - Deployment:
+      - Overview: deployment/overview.md
+      - Docker: deployment/docker.md
+      - Environment Variables: deployment/environment.md
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/untraceablez/pantrie-spec
