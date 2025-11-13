@@ -75,11 +75,11 @@ export default function InventoryItemCard({ item, onEdit }: InventoryItemCardPro
       {/* Item details */}
       <div className="space-y-2">
         <div className="flex items-start justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1 mr-2">{item.name}</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1 mr-2">{item.name}</h3>
           {onEdit && (
             <button
               onClick={() => onEdit(item)}
-              className="text-gray-400 hover:text-primary flex-shrink-0"
+              className="text-gray-400 dark:text-gray-500 hover:text-primary dark:hover:text-primary flex-shrink-0"
               title="Edit item"
             >
               <svg
@@ -98,17 +98,17 @@ export default function InventoryItemCard({ item, onEdit }: InventoryItemCardPro
         </div>
 
         {item.brand && (
-          <p className="text-sm text-gray-600">{item.brand}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{item.brand}</p>
         )}
 
         {item.description && (
-          <p className="text-sm text-gray-600 line-clamp-2">{item.description}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{item.description}</p>
         )}
 
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center space-x-1">
-            <span className="text-lg font-bold text-gray-900">{item.quantity}</span>
-            {item.unit && <span className="text-sm text-gray-600">{item.unit}</span>}
+            <span className="text-lg font-bold text-gray-900 dark:text-white">{item.quantity}</span>
+            {item.unit && <span className="text-sm text-gray-600 dark:text-gray-400">{item.unit}</span>}
           </div>
 
           {expirationStatus && (
@@ -119,9 +119,9 @@ export default function InventoryItemCard({ item, onEdit }: InventoryItemCardPro
         </div>
 
         {/* Additional info */}
-        <div className="pt-2 border-t border-gray-200 space-y-1">
+        <div className="pt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
           {item.expiration_date && (
-            <div className="flex items-center text-xs text-gray-500">
+            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
               <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
               </svg>
@@ -130,7 +130,7 @@ export default function InventoryItemCard({ item, onEdit }: InventoryItemCardPro
           )}
 
           {item.purchase_date && (
-            <div className="flex items-center text-xs text-gray-500">
+            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
               <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
@@ -139,7 +139,7 @@ export default function InventoryItemCard({ item, onEdit }: InventoryItemCardPro
           )}
 
           {item.barcode && (
-            <div className="flex items-center text-xs text-gray-500">
+            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
               <svg className="w-4 h-4 mr-1" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
                 <path d="M12 4v16m8-8H4"></path>
               </svg>
@@ -149,8 +149,8 @@ export default function InventoryItemCard({ item, onEdit }: InventoryItemCardPro
         </div>
 
         {item.notes && (
-          <div className="pt-2 border-t border-gray-200">
-            <p className="text-xs text-gray-600 italic line-clamp-2">{item.notes}</p>
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-600 dark:text-gray-400 italic line-clamp-2">{item.notes}</p>
           </div>
         )}
       </div>

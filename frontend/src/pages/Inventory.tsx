@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { listInventory, type InventoryListResponse, type InventoryItem } from '@/services/inventory'
 import { listHouseholds, type HouseholdWithRole } from '@/services/household'
+import { listHouseholdLocations, type Location } from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
+import { useThemeStore } from '@/store/themeStore'
 import InventoryList from '@/components/inventory/InventoryList'
 import SearchBar from '@/components/inventory/SearchBar'
 import EditItemModal from '@/components/inventory/EditItemModal'
@@ -10,8 +12,11 @@ import EditItemModal from '@/components/inventory/EditItemModal'
 export default function Inventory() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const { resolvedTheme } = useThemeStore()
   const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<number | null>(null)
+  const [locations, setLocations] = useState<Location[]>([])
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null)
   const [inventoryData, setInventoryData] = useState<InventoryListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
@@ -20,7 +25,6 @@ export default function Inventory() {
   // Search and filter state
   const [search, setSearch] = useState('')
   const [categoryId] = useState<number | undefined>(undefined)
-  const [locationId] = useState<number | undefined>(undefined)
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
@@ -44,6 +48,28 @@ export default function Inventory() {
     fetchHouseholds()
   }, [user])
 
+  // Fetch locations when household changes
+  useEffect(() => {
+    const fetchLocations = async () => {
+      if (!selectedHouseholdId) {
+        setLocations([])
+        setSelectedLocationId(null)
+        return
+      }
+
+      try {
+        const householdLocations = await listHouseholdLocations(selectedHouseholdId)
+        setLocations(householdLocations)
+        // Reset to "All" tab when household changes
+        setSelectedLocationId(null)
+      } catch (err) {
+        console.error('Error fetching locations:', err)
+      }
+    }
+
+    fetchLocations()
+  }, [selectedHouseholdId])
+
   // Fetch inventory when household or filters change
   useEffect(() => {
     const fetchInventory = async () => {
@@ -59,7 +85,7 @@ export default function Inventory() {
           page_size: pageSize,
           search: search || undefined,
           category_id: categoryId,
-          location_id: locationId,
+          location_id: selectedLocationId || undefined,
           sort_by: sortBy,
           sort_order: sortOrder,
         })
@@ -74,7 +100,7 @@ export default function Inventory() {
     }
 
     fetchInventory()
-  }, [selectedHouseholdId, page, search, categoryId, locationId, sortBy, sortOrder])
+  }, [selectedHouseholdId, page, search, categoryId, selectedLocationId, sortBy, sortOrder])
 
   const handleSearchChange = (value: string) => {
     setSearch(value)
@@ -126,11 +152,18 @@ export default function Inventory() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory</h1>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                View and manage your household items
-              </p>
+            <div className="flex items-center space-x-4">
+              <img
+                src={resolvedTheme === 'dark' ? '/pantrie-logo-light.png' : '/pantrie-logo-dark.png'}
+                alt="Pantrie"
+                className="h-12 w-auto"
+              />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory</h1>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  View and manage your household items
+                </p>
+              </div>
             </div>
             <div className="flex items-center space-x-3">
               <button
@@ -142,7 +175,7 @@ export default function Inventory() {
               </button>
               <button
                 onClick={() => navigate('/add-item')}
-                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 font-medium"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
               >
                 Add Item
               </button>
@@ -201,7 +234,7 @@ export default function Inventory() {
             </p>
             <button
               onClick={() => navigate('/add-item')}
-              className="text-primary hover:underline font-medium"
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
             >
               Add your first item
             </button>

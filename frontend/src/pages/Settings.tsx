@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useThemeStore } from '@/store/themeStore'
 import HouseholdSettings from '@/components/settings/HouseholdSettings'
 import UserSettings from '@/components/settings/UserSettings'
 
@@ -7,6 +8,7 @@ type SettingsSection = 'household' | 'account' | 'notifications'
 
 export default function Settings() {
   const navigate = useNavigate()
+  const { resolvedTheme } = useThemeStore()
   const [activeSection, setActiveSection] = useState<SettingsSection>('household')
 
   const sections = [
@@ -39,10 +41,19 @@ export default function Settings() {
               <span className="font-medium">Back to Dashboard</span>
             </button>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Manage your household, account, and preferences
-          </p>
+          <div className="flex items-center space-x-4">
+            <img
+              src={resolvedTheme === 'dark' ? '/pantrie-logo-light.png' : '/pantrie-logo-dark.png'}
+              alt="Pantrie"
+              className="h-12 w-auto"
+            />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Manage your household, account, and preferences
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

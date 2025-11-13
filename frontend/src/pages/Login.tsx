@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useThemeStore } from '@/store/themeStore'
 import { login } from '@/services/auth'
 
 export default function Login() {
@@ -11,6 +12,7 @@ export default function Login() {
 
   const navigate = useNavigate()
   const { setAuth } = useAuthStore()
+  const { resolvedTheme } = useThemeStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +34,13 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8">
         <div>
+          <div className="flex justify-center mb-6">
+            <img
+              src={resolvedTheme === 'dark' ? '/pantrie-logo-light.png' : '/pantrie-logo-dark.png'}
+              alt="Pantrie Logo"
+              className="h-20 w-auto"
+            />
+          </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Welcome to Pantrie
           </h2>

@@ -73,7 +73,7 @@ export default function LocationManager({ householdId, canEdit }: LocationManage
         {canEdit && (
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 font-medium shadow-sm"
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium shadow-sm"
             title="Add new location"
           >
             <svg
