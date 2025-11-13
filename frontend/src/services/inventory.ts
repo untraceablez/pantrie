@@ -51,6 +51,24 @@ export interface UpdateInventoryItemData {
   notes?: string | null
 }
 
+export interface InventoryListParams {
+  page?: number
+  page_size?: number
+  search?: string
+  category_id?: number
+  location_id?: number
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
+}
+
+export interface InventoryListResponse {
+  items: InventoryItem[]
+  total: number
+  page: number
+  page_size: number
+  total_pages: number
+}
+
 export const createItem = async (data: CreateInventoryItemData): Promise<InventoryItem> => {
   const response = await apiClient.post<InventoryItem>('/inventory', data)
   return response.data
@@ -63,6 +81,17 @@ export const getItem = async (itemId: number): Promise<InventoryItem> => {
 
 export const listHouseholdItems = async (householdId: number): Promise<InventoryItem[]> => {
   const response = await apiClient.get<InventoryItem[]>(`/inventory/households/${householdId}`)
+  return response.data
+}
+
+export const listInventory = async (
+  householdId: number,
+  params?: InventoryListParams
+): Promise<InventoryListResponse> => {
+  const response = await apiClient.get<InventoryListResponse>(
+    `/inventory/households/${householdId}/list`,
+    { params }
+  )
   return response.data
 }
 

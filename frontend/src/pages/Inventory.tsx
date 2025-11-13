@@ -1,0 +1,235 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { listInventory, type InventoryListResponse, type InventoryItem } from '@/services/inventory'
+import { listHouseholds, type HouseholdWithRole } from '@/services/household'
+import { useAuthStore } from '@/store/authStore'
+import InventoryList from '@/components/inventory/InventoryList'
+import SearchBar from '@/components/inventory/SearchBar'
+import EditItemModal from '@/components/inventory/EditItemModal'
+
+export default function Inventory() {
+  const navigate = useNavigate()
+  const { user } = useAuthStore()
+  const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState<number | null>(null)
+  const [inventoryData, setInventoryData] = useState<InventoryListResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string>('')
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
+
+  // Search and filter state
+  const [search, setSearch] = useState('')
+  const [categoryId] = useState<number | undefined>(undefined)
+  const [locationId] = useState<number | undefined>(undefined)
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [page, setPage] = useState(1)
+  const pageSize = 20
+
+  // Fetch user's households on mount
+  useEffect(() => {
+    const fetchHouseholds = async () => {
+      if (!user) return
+      try {
+        const userHouseholds = await listHouseholds()
+        setHouseholds(userHouseholds)
+        if (userHouseholds.length > 0) {
+          setSelectedHouseholdId(userHouseholds[0].id)
+        }
+      } catch (err) {
+        console.error('Error fetching households:', err)
+        setError('Failed to load households')
+      }
+    }
+    fetchHouseholds()
+  }, [user])
+
+  // Fetch inventory when household or filters change
+  useEffect(() => {
+    const fetchInventory = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const data = await listInventory(selectedHouseholdId, {
+          page,
+          page_size: pageSize,
+          search: search || undefined,
+          category_id: categoryId,
+          location_id: locationId,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        })
+        setInventoryData(data)
+        setError('')
+      } catch (err: any) {
+        console.error('Error fetching inventory:', err)
+        setError(err.response?.data?.error || 'Failed to load inventory')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchInventory()
+  }, [selectedHouseholdId, page, search, categoryId, locationId, sortBy, sortOrder])
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setPage(1) // Reset to first page when searching
+  }
+
+  const handleSortChange = (field: string) => {
+    if (sortBy === field) {
+      // Toggle sort order if clicking same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('desc')
+    }
+    setPage(1)
+  }
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleEdit = (item: InventoryItem) => {
+    setEditingItem(item)
+  }
+
+  const handleEditSuccess = () => {
+    // Refresh inventory after successful edit
+    if (selectedHouseholdId) {
+      listInventory(selectedHouseholdId, {
+        page,
+        page_size: pageSize,
+        search: search || undefined,
+        category_id: categoryId,
+        location_id: locationId,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      })
+        .then((data) => setInventoryData(data))
+        .catch((err) => {
+          console.error('Error refreshing inventory:', err)
+        })
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory</h1>
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                View and manage your household items
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => navigate('/settings')}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                title="Settings"
+              >
+                Settings
+              </button>
+              <button
+                onClick={() => navigate('/add-item')}
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 font-medium"
+              >
+                Add Item
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-md">
+            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+          </div>
+        )}
+
+        {/* Household selector */}
+        {households.length > 1 && (
+          <div className="mb-6 bg-white dark:bg-gray-800 shadow-sm rounded-lg p-4">
+            <label htmlFor="household-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Select Household
+            </label>
+            <select
+              id="household-select"
+              value={selectedHouseholdId || ''}
+              onChange={(e) => setSelectedHouseholdId(Number(e.target.value))}
+              className="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+            >
+              {households.map((household) => (
+                <option key={household.id} value={household.id}>
+                  {household.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <SearchBar value={search} onChange={handleSearchChange} />
+        </div>
+
+        {/* Filters - Future enhancement */}
+        {/* Can add category/location filters here */}
+
+        {/* Inventory List */}
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">Loading inventory...</p>
+          </div>
+        ) : !selectedHouseholdId ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 mb-4">No household selected</p>
+          </div>
+        ) : !inventoryData || inventoryData.items.length === 0 ? (
+          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+            <p className="text-gray-500 dark:text-gray-400 mb-4">
+              {search ? 'No items found matching your search' : 'No items in your inventory yet'}
+            </p>
+            <button
+              onClick={() => navigate('/add-item')}
+              className="text-primary hover:underline font-medium"
+            >
+              Add your first item
+            </button>
+          </div>
+        ) : (
+          <InventoryList
+            items={inventoryData.items}
+            total={inventoryData.total}
+            page={inventoryData.page}
+            pageSize={inventoryData.page_size}
+            totalPages={inventoryData.total_pages}
+            onPageChange={handlePageChange}
+            onSortChange={handleSortChange}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onEdit={handleEdit}
+          />
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {editingItem && (
+        <EditItemModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+    </div>
+  )
+}

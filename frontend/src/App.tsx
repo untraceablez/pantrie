@@ -1,21 +1,12 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { useThemeStore } from '@/store/themeStore'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import AddItem from '@/pages/AddItem'
-
-// Placeholder Dashboard component (will be created in Phase 4)
-const DashboardPage = () => (
-  <div className="container mx-auto py-8">
-    <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-    <p className="text-muted-foreground">Inventory list - coming in Phase 4</p>
-    <div className="mt-4">
-      <a href="/add-item" className="text-primary hover:underline">
-        Add New Item
-      </a>
-    </div>
-  </div>
-)
+import Inventory from '@/pages/Inventory'
+import Settings from '@/pages/Settings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuthStore()
@@ -28,6 +19,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const { initializeTheme } = useThemeStore()
+
+  useEffect(() => {
+    initializeTheme()
+  }, [initializeTheme])
+
   return (
     <BrowserRouter>
       <Routes>
@@ -37,7 +34,7 @@ function App() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <Inventory />
             </ProtectedRoute>
           }
         />
@@ -46,6 +43,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AddItem />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           }
         />

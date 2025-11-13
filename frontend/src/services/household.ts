@@ -8,6 +8,16 @@ export interface Household {
   updated_at: string
 }
 
+export interface HouseholdMembership {
+  role: 'admin' | 'editor' | 'viewer'
+  joined_at: string
+}
+
+export interface HouseholdWithMembership extends Household {
+  membership: HouseholdMembership
+}
+
+// Alias for backwards compatibility
 export interface HouseholdWithRole extends Household {
   user_role: 'admin' | 'editor' | 'viewer'
 }

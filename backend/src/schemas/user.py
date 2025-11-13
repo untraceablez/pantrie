@@ -41,6 +41,28 @@ class UserUpdate(BaseModel):
 
     username: str | None = Field(None, min_length=3, max_length=100)
     email: EmailStr | None = None
+    first_name: str | None = Field(None, max_length=100)
+    last_name: str | None = Field(None, max_length=100)
+    avatar_url: str | None = None
+
+
+class PasswordChange(BaseModel):
+    """Schema for changing password."""
+
+    current_password: str
+    new_password: str = Field(min_length=8, max_length=100)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        """Validate password strength."""
+        if not any(c.isupper() for c in v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in v):
+            raise ValueError("Password must contain at least one digit")
+        return v
 
 
 class UserResponse(UserBase):
@@ -49,6 +71,9 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     is_verified: bool
+    first_name: str | None = None
+    last_name: str | None = None
+    avatar_url: str | None = None
     oauth_provider: str | None = None
     created_at: datetime
     updated_at: datetime

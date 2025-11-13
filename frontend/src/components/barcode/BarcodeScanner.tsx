@@ -6,6 +6,17 @@ interface BarcodeScannerProps {
   onClose: () => void
 }
 
+// Custom styles for the scanner
+const scannerStyles = `
+  #barcode-reader__scan_region {
+    border: 3px solid #dc2626 !important;
+  }
+  #barcode-reader__dashboard_section_csr > div:first-child {
+    border: 3px solid #dc2626 !important;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3) !important;
+  }
+`
+
 export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const [isScanning, setIsScanning] = useState(false)
@@ -14,6 +25,12 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
   const [selectedCamera, setSelectedCamera] = useState<string>('')
 
   useEffect(() => {
+    // Inject custom styles
+    const styleElement = document.createElement('style')
+    styleElement.id = 'barcode-scanner-styles'
+    styleElement.textContent = scannerStyles
+    document.head.appendChild(styleElement)
+
     // Get available cameras
     Html5Qrcode.getCameras()
       .then((devices) => {
@@ -39,6 +56,11 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
 
     return () => {
       stopScanning()
+      // Remove custom styles when component unmounts
+      const existingStyle = document.getElementById('barcode-scanner-styles')
+      if (existingStyle) {
+        existingStyle.remove()
+      }
     }
   }, [])
 
@@ -56,17 +78,21 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
         selectedCamera,
         {
           fps: 10, // Frames per second to process
-          qrbox: { width: 250, height: 250 }, // Scanning box size
+          qrbox: { width: 300, height: 150 }, // Wide scanning box for horizontal barcodes
+          aspectRatio: 2.0, // Wide aspect ratio for barcodes
+          disableFlip: false, // Try both normal and flipped
         },
         (decodedText) => {
           // Successfully scanned
+          console.log('Barcode scanned:', decodedText)
           onScan(decodedText)
           stopScanning()
         },
         (errorMessage) => {
           // Scanning error (usually just "no code found" - ignore)
           // Only log if it's not the common "No MultiFormat Readers were able to detect the code" message
-          if (!errorMessage.includes('No MultiFormat Readers')) {
+          if (!errorMessage.includes('No MultiFormat Readers') &&
+              !errorMessage.includes('NotFoundException')) {
             console.debug('Scan error:', errorMessage)
           }
         }
@@ -153,9 +179,17 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
 
         <div
           id="barcode-reader"
-          className="mb-4 rounded-lg overflow-hidden"
-          style={{ minHeight: '250px' }}
+          className="mb-4 rounded-lg overflow-hidden bg-gray-100"
+          style={{ minHeight: '300px' }}
         ></div>
+
+        {isScanning && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <p className="text-sm text-blue-800 font-medium">
+              📸 Hold the barcode as close as possible within the box. Keep it steady and well-lit.
+            </p>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3">
           <button
@@ -183,10 +217,18 @@ export default function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps)
           )}
         </div>
 
-        <div className="mt-4 text-sm text-gray-500">
-          <p>Position the barcode within the scanning area.</p>
-          <p>Supported formats: UPC, EAN, Code 128, Code 39, QR Code, and more.</p>
-        </div>
+        {!isScanning && (
+          <div className="mt-4 text-sm text-gray-500">
+            <p className="font-medium">Tips for successful scanning:</p>
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>Hold the barcode horizontally</li>
+              <li>Ensure good lighting</li>
+              <li>Keep the barcode flat and steady</li>
+              <li>Position it about 6-12 inches from camera</li>
+            </ul>
+            <p className="mt-2">Supported: UPC, EAN, Code 128, Code 39, ITF, QR Code</p>
+          </div>
+        )}
       </div>
     </div>
   )

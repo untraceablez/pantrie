@@ -204,6 +204,42 @@ cd frontend
 npm install
 ```
 
+## Enhancement 1: Barcode Scanning for Inventory Items
+
+**Feature**: Added barcode scanning to automatically populate product information when adding inventory items.
+
+**Implementation**:
+
+1. **Backend Barcode Lookup Service** (`backend/src/services/barcode_service.py`):
+   - Integrates with Open Food Facts API
+   - Returns product name, description, brand, and other details
+
+2. **Backend API Endpoint** (`backend/src/api/v1/barcode.py`):
+   - `GET /api/v1/barcode/{barcode}` - Lookup product by barcode
+
+3. **Frontend Barcode Scanner Component** (`frontend/src/components/barcode/BarcodeScanner.tsx`):
+   - Uses device camera for real-time barcode scanning
+   - Supports UPC, EAN, Code 128, Code 39, ITF, QR Code
+   - Wide scanning box (300x150) optimized for horizontal barcodes
+   - Camera selection for devices with multiple cameras
+
+4. **Updated Add Item Form** (`frontend/src/components/inventory/AddItemForm.tsx`):
+   - Prominent barcode section at top of form
+   - **Two input methods**:
+     - **Manual input field** for USB/Bluetooth barcode scanners (acts like keyboard input)
+     - **Camera button** to open camera scanner modal
+   - Auto-populates name, description, and brand when product found
+   - Allows manual entry if product not in database
+
+**How to Use**:
+- **With USB/Bluetooth Scanner**: Focus the barcode input field and scan - the code will be typed automatically, then click "Lookup"
+- **With Camera**: Click the "Camera" button to open the scanner modal, then scan the barcode with your device camera
+
+**UI Improvements**:
+- Camera scanner now displays a **red bordered scanning box** for better visibility
+- Semi-transparent dark overlay outside the scanning area to help focus
+- Clear visual guidance matching the instruction text
+
 ## Verification
 
 All systems are now working:

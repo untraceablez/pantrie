@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.api.v1 import auth, barcode, households, inventory
+from src.api.v1 import auth, barcode, households, inventory, locations, users
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
@@ -112,6 +112,8 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(barcode.router, prefix="/api/v1")
 app.include_router(households.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
+app.include_router(locations.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api/v1")
 
 
 @app.get("/api/health")
