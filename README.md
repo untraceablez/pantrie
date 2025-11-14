@@ -10,7 +10,7 @@
   [![GitHub Stars](https://img.shields.io/github/stars/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/stargazers)
   [![GitHub Issues](https://img.shields.io/github/issues/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/issues)
 
-  [Demo](https://pantrie.example.com) · [Documentation](https://docs.pantrie.example.com) · [Report Bug](https://github.com/untraceablez/pantrie/issues)
+  [No Demo Yet](https://pantrie.example.com) · [Documentation](https://pantrie.org) · [Report Bug](https://github.com/untraceablez/pantrie/issues)
 </div>
 
 ---
@@ -76,7 +76,7 @@ npm install
 npm run dev
 ```
 
-Full installation instructions available in the [documentation](https://docs.pantrie.example.com).
+Full installation instructions available in the [documentation](https://pantrie.org).
 
 ## Tech Stack
 
@@ -100,12 +100,10 @@ Pantrie is under active development. Here's what's planned:
 
 - [ ] Shopping list generation from low-stock items
 - [ ] Recipe integration (sync with Mealie!)
-- [ ] Barcode scanning via mobile app
 - [ ] Notification system for expiring items
 - [ ] Import/export functionality
 - [ ] Multi-language support
 - [ ] Mobile-responsive PWA
-- [ ] Grocery store price tracking
 
 See the [project board](https://github.com/untraceablez/pantrie/projects) for detailed progress.
 
@@ -169,5 +167,5 @@ If you find Pantrie useful, consider:
 ---
 
 <div align="center">
-  Made with ❤️ for organized households everywhere
+  Made with ❤️ for homes everywhere
 </div>
