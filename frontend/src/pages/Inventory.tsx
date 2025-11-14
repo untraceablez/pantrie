@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { listInventory, deleteItem, type InventoryListResponse, type InventoryItem } from '@/services/inventory'
 import { listHouseholds, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
+import { logout } from '@/services/auth'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import InventoryList from '@/components/inventory/InventoryList'
@@ -12,7 +13,7 @@ import ItemDetailModal from '@/components/inventory/ItemDetailModal'
 
 export default function Inventory() {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user, refreshToken, logout: clearAuth } = useAuthStore()
   const { resolvedTheme } = useThemeStore()
   const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<number | null>(null)
@@ -185,6 +186,21 @@ export default function Inventory() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      if (refreshToken) {
+        await logout(refreshToken)
+      }
+      clearAuth()
+      navigate('/login')
+    } catch (err) {
+      console.error('Error logging out:', err)
+      // Clear auth anyway
+      clearAuth()
+      navigate('/login')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -211,6 +227,13 @@ export default function Inventory() {
                 title="Settings"
               >
                 Settings
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                title="Logout"
+              >
+                Logout
               </button>
               <button
                 onClick={() => navigate('/add-item')}

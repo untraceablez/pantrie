@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
 import { login } from '@/services/auth'
@@ -11,8 +11,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
 
   const navigate = useNavigate()
+  const location = useLocation()
   const { setAuth } = useAuthStore()
   const { resolvedTheme } = useThemeStore()
+
+  // Get success message from location state (e.g., from setup completion)
+  const successMessage = (location.state as any)?.message
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,6 +53,11 @@ export default function Login() {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {successMessage && (
+            <div className="rounded-md bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-800 p-4">
+              <p className="text-sm text-green-800 dark:text-green-200">{successMessage}</p>
+            </div>
+          )}
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 p-4">
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>

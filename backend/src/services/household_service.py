@@ -2,10 +2,11 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.exceptions import AuthorizationError, NotFoundError
+from src.core.exceptions import AlreadyExistsError, AuthorizationError, NotFoundError
 from src.core.logging import setup_logging
 from src.models.household import Household
 from src.models.household_membership import HouseholdMembership, MemberRole
+from src.models.user import User
 from src.schemas.household import HouseholdCreate, HouseholdUpdate, HouseholdWithMembership
 
 logger = setup_logging()
@@ -177,3 +178,172 @@ class HouseholdService:
             raise AuthorizationError(
                 message=f"You need {required_role.value} role to perform this action"
             )
+
+    async def list_household_members(self, household_id: int, user_id: int) -> list[dict]:
+        """List all members of a household with their roles."""
+        # Check if user is a member of the household
+        await self._check_user_role(household_id, user_id, MemberRole.VIEWER)
+
+        # Get all members
+        result = await self.db.execute(
+            select(HouseholdMembership, User)
+            .join(User, HouseholdMembership.user_id == User.id)
+            .where(HouseholdMembership.household_id == household_id)
+        )
+
+        members = []
+        for membership, user in result.all():
+            members.append({
+                "id": membership.id,
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": membership.role.value,
+                "joined_at": membership.created_at,
+            })
+
+        return members
+
+    async def add_household_member(
+        self, household_id: int, admin_id: int, user_email: str, role: MemberRole
+    ) -> dict:
+        """Add a new member to the household (admin only)."""
+        # Check if requester is admin
+        await self._check_user_role(household_id, admin_id, MemberRole.ADMIN)
+
+        # Find user by email
+        result = await self.db.execute(select(User).where(User.email == user_email))
+        user = result.scalars().first()
+
+        if not user:
+            raise NotFoundError(
+                message="User not found with this email",
+                details={"email": user_email},
+            )
+
+        # Check if user is already a member
+        result = await self.db.execute(
+            select(HouseholdMembership).where(
+                HouseholdMembership.household_id == household_id,
+                HouseholdMembership.user_id == user.id,
+            )
+        )
+        existing = result.scalars().first()
+
+        if existing:
+            raise AlreadyExistsError(
+                message="User is already a member of this household",
+                details={"email": user_email},
+            )
+
+        # Create membership
+        membership = HouseholdMembership(
+            user_id=user.id,
+            household_id=household_id,
+            role=role,
+        )
+        self.db.add(membership)
+        await self.db.commit()
+        await self.db.refresh(membership)
+
+        logger.info(
+            "Member added to household",
+            household_id=household_id,
+            user_id=user.id,
+            role=role.value,
+        )
+
+        return {
+            "id": membership.id,
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": role.value,
+            "joined_at": membership.created_at,
+        }
+
+    async def update_member_role(
+        self, household_id: int, admin_id: int, membership_id: int, new_role: MemberRole
+    ) -> dict:
+        """Update a member's role in the household (admin only)."""
+        # Check if requester is admin
+        await self._check_user_role(household_id, admin_id, MemberRole.ADMIN)
+
+        # Get membership
+        result = await self.db.execute(
+            select(HouseholdMembership).where(HouseholdMembership.id == membership_id)
+        )
+        membership = result.scalars().first()
+
+        if not membership:
+            raise NotFoundError(
+                message="Membership not found",
+                details={"membership_id": membership_id},
+            )
+
+        if membership.household_id != household_id:
+            raise AuthorizationError(message="Membership does not belong to this household")
+
+        # Don't allow changing own role
+        if membership.user_id == admin_id:
+            raise AuthorizationError(message="You cannot change your own role")
+
+        # Update role
+        membership.role = new_role
+        await self.db.commit()
+        await self.db.refresh(membership)
+
+        # Get user details
+        result = await self.db.execute(select(User).where(User.id == membership.user_id))
+        user = result.scalars().first()
+
+        logger.info(
+            "Member role updated",
+            household_id=household_id,
+            membership_id=membership_id,
+            new_role=new_role.value,
+        )
+
+        return {
+            "id": membership.id,
+            "user_id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": new_role.value,
+            "joined_at": membership.created_at,
+        }
+
+    async def remove_household_member(
+        self, household_id: int, admin_id: int, membership_id: int
+    ) -> None:
+        """Remove a member from the household (admin only)."""
+        # Check if requester is admin
+        await self._check_user_role(household_id, admin_id, MemberRole.ADMIN)
+
+        # Get membership
+        result = await self.db.execute(
+            select(HouseholdMembership).where(HouseholdMembership.id == membership_id)
+        )
+        membership = result.scalars().first()
+
+        if not membership:
+            raise NotFoundError(
+                message="Membership not found",
+                details={"membership_id": membership_id},
+            )
+
+        if membership.household_id != household_id:
+            raise AuthorizationError(message="Membership does not belong to this household")
+
+        # Don't allow removing yourself
+        if membership.user_id == admin_id:
+            raise AuthorizationError(message="You cannot remove yourself from the household")
+
+        await self.db.delete(membership)
+        await self.db.commit()
+
+        logger.info(
+            "Member removed from household",
+            household_id=household_id,
+            membership_id=membership_id,
+        )

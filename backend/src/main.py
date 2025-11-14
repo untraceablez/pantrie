@@ -7,7 +7,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from src.api.v1 import allergen, auth, barcode, households, inventory, locations, users
+from src.api.v1 import allergen, auth, barcode, households, inventory, locations, setup, users
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
@@ -38,8 +38,8 @@ app = FastAPI(
 # CORS middleware - must be added first (middleware applies in reverse order)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins for development
+    allow_credentials=False,  # Must be False when using allow_origins=["*"]
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -108,6 +108,7 @@ async def pantrie_exception_handler(request: Request, exc: PantrieException) -> 
 
 
 # Register API routers
+app.include_router(setup.router, prefix="/api/v1")  # Setup must be first (no auth required)
 app.include_router(allergen.router, prefix="/api/v1/households", tags=["allergens"])
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(barcode.router, prefix="/api/v1")
