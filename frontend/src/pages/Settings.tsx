@@ -12,7 +12,7 @@ type SettingsSection = 'household' | 'account' | 'administration' | 'notificatio
 export default function Settings() {
   const navigate = useNavigate()
   const { resolvedTheme } = useThemeStore()
-  const { refreshToken, logout: clearAuth } = useAuthStore()
+  const { user, refreshToken, logout: clearAuth } = useAuthStore()
   const [activeSection, setActiveSection] = useState<SettingsSection>('household')
 
   const sections = [
@@ -116,15 +116,17 @@ export default function Settings() {
 
           {/* Main Content Area */}
           <div className="lg:col-span-3">
-            {activeSection === 'household' && <HouseholdSettings />}
-            {activeSection === 'account' && <UserSettings />}
-            {activeSection === 'administration' && <AdministrationSettings />}
-            {activeSection === 'notifications' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Notifications</h2>
-                <p className="text-gray-600 dark:text-gray-400">Coming soon...</p>
-              </div>
-            )}
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+              {activeSection === 'household' && <HouseholdSettings />}
+              {activeSection === 'account' && <UserSettings />}
+              {activeSection === 'administration' && <AdministrationSettings />}
+              {activeSection === 'notifications' && (
+                <div className="p-6">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Notifications</h2>
+                  <p className="text-gray-600 dark:text-gray-400">Coming soon...</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

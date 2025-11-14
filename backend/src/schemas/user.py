@@ -71,6 +71,7 @@ class UserResponse(UserBase):
     id: int
     is_active: bool
     is_verified: bool
+    site_role: str
     first_name: str | None = None
     last_name: str | None = None
     avatar_url: str | None = None

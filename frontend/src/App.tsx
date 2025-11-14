@@ -6,6 +6,7 @@ import SetupGuard from '@/components/SetupGuard'
 import SetupPage from '@/pages/SetupPage'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
+import EmailConfirmationPage from '@/pages/EmailConfirmationPage'
 import AddItem from '@/pages/AddItem'
 import Inventory from '@/pages/Inventory'
 import Settings from '@/pages/Settings'
@@ -34,6 +35,7 @@ function App() {
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/confirm-email" element={<EmailConfirmationPage />} />
           <Route
             path="/dashboard"
             element={

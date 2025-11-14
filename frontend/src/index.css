@@ -1,68 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Cabin:ital,wght@0,400..700;1,400..700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light Mode Theme - using Tea Green, Rose Taupe, and Blue Violet */
+    --background: 0 0% 100%; /* White background */
+    --foreground: 244 41% 8%; /* Rich Black for text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 244 41% 8%; /* Rich Black text */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 244 41% 8%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 265 83% 57%; /* Blue Violet */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 88 32% 76%; /* Tea Green */
+    --secondary-foreground: 244 41% 8%; /* Rich Black text */
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 88 32% 90%; /* Lighter Tea Green */
+    --muted-foreground: 358 24% 35%; /* Darker Rose Taupe */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 358 24% 52%; /* Rose Taupe */
+    --accent-foreground: 0 0% 100%; /* White text */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84.2% 60.2%; /* Red for errors */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 88 32% 85%; /* Light Tea Green border */
+    --input: 88 32% 85%;
+    --ring: 265 83% 57%; /* Blue Violet ring */
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark Mode Theme - using Rich Black, Oxford Blue, Rose Taupe, and Blue Violet */
+    --background: 244 41% 8%; /* Rich Black background */
+    --foreground: 0 0% 100%; /* White text */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 230 40% 14%; /* Oxford Blue cards */
+    --card-foreground: 0 0% 100%; /* White text */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 230 40% 14%; /* Oxford Blue */
+    --popover-foreground: 0 0% 100%; /* White text */
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 265 83% 57%; /* Blue Violet */
+    --primary-foreground: 88 32% 76%; /* Tea Green text on buttons */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 230 40% 20%; /* Lighter Oxford Blue */
+    --secondary-foreground: 0 0% 100%; /* White text */
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 230 40% 18%; /* Muted Oxford Blue */
+    --muted-foreground: 0 0% 100%; /* White text */
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 358 24% 52%; /* Rose Taupe */
+    --accent-foreground: 0 0% 100%; /* White text */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 50%; /* Darker red for errors */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 230 40% 20%; /* Oxford Blue border */
+    --input: 230 40% 20%;
+    --ring: 265 83% 70%; /* Lighter Blue Violet ring */
   }
 }
 
@@ -72,5 +76,130 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Cabin', sans-serif;
+  }
+  html {
+    font-family: 'Cabin', sans-serif;
+  }
+}
+
+/* Force override gray colors in dark mode with our custom palette */
+@layer utilities {
+  .dark .bg-gray-900,
+  .dark .dark\:bg-gray-900 {
+    background-color: #0d0c1d !important; /* Rich Black */
+  }
+
+  .dark .bg-gray-800,
+  .dark .dark\:bg-gray-800 {
+    background-color: #111528 !important; /* Oxford Blue darker */
+  }
+
+  .dark .bg-gray-700,
+  .dark .dark\:bg-gray-700 {
+    background-color: #161b33 !important; /* Oxford Blue */
+  }
+
+  .dark .bg-gray-600,
+  .dark .dark\:bg-gray-600 {
+    background-color: #4a5bad !important; /* Oxford Blue 700 */
+  }
+
+  .dark .bg-gray-500,
+  .dark .dark\:bg-gray-500 {
+    background-color: #a26769 !important; /* Rose Taupe */
+  }
+
+  /* Override gray text to white in dark mode */
+  .dark .text-gray-100,
+  .dark .dark\:text-gray-100,
+  .dark .text-gray-200,
+  .dark .dark\:text-gray-200,
+  .dark .text-gray-300,
+  .dark .dark\:text-gray-300,
+  .dark .text-gray-400,
+  .dark .dark\:text-gray-400,
+  .dark .text-gray-500,
+  .dark .dark\:text-gray-500,
+  .dark .text-gray-600,
+  .dark .dark\:text-gray-600 {
+    color: #ffffff !important;
+  }
+
+  .dark .text-white,
+  .dark .dark\:text-white {
+    color: #ffffff !important;
+  }
+
+  /* Force primary action buttons to use Blue Violet with Tea Green text */
+  .dark button.bg-primary,
+  .dark button.bg-blue-600,
+  .dark button.bg-blue-700,
+  .dark button.bg-green-600,
+  .dark button[class*="bg-blue"],
+  .dark button[class*="bg-green"]:not([class*="bg-green-50"]):not([class*="bg-green-100"]) {
+    background-color: #8338ec !important; /* Blue Violet */
+    color: #c4d6b0 !important; /* Tea Green */
+  }
+
+  .dark button.bg-primary:hover,
+  .dark button.bg-blue-600:hover,
+  .dark button.bg-blue-700:hover,
+  .dark button.bg-green-600:hover {
+    background-color: #9b5ef0 !important; /* Lighter Blue Violet on hover */
+  }
+
+  /* Keep primary button styling explicit */
+  .dark .bg-primary,
+  .dark .dark\:bg-primary {
+    background-color: #8338ec !important; /* Blue Violet */
+    color: #c4d6b0 !important; /* Tea Green text */
+  }
+
+  .dark .hover\:bg-primary:hover,
+  .dark .hover\:bg-blue-700:hover {
+    background-color: #9b5ef0 !important; /* Lighter Blue Violet */
+  }
+
+  /* Override badges/pills to not use button styling */
+  .dark .rounded-full,
+  .dark [class*="rounded-full"],
+  .dark .inline-flex,
+  .dark button.rounded-md:not([class*="bg-blue"]):not([class*="bg-green"]):not(.bg-primary) {
+    background-color: initial !important;
+  }
+}
+
+/* Custom color utilities */
+@layer utilities {
+  .text-rose-taupe {
+    color: #a26769;
+  }
+  .bg-rose-taupe {
+    background-color: #a26769;
+  }
+  .text-oxford-blue {
+    color: #161b33;
+  }
+  .bg-oxford-blue {
+    background-color: #161b33;
+  }
+  .text-rich-black {
+    color: #0d0c1d;
+  }
+  .bg-rich-black {
+    background-color: #0d0c1d;
+  }
+  .text-blue-violet {
+    color: #8338ec;
+  }
+  .bg-blue-violet {
+    background-color: #8338ec;
+  }
+  .text-tea-green {
+    color: #c4d6b0;
+  }
+  .bg-tea-green {
+    background-color: #c4d6b0;
   }
 }

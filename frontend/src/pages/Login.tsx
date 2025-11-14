@@ -35,8 +35,16 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div className="max-w-md w-full space-y-8">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 bg-gray-50 dark:bg-gray-900"
+      style={{
+        backgroundImage: 'url(/background.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="max-w-md w-full space-y-8 bg-white/95 dark:bg-gray-800/95 p-8 rounded-lg shadow-xl backdrop-blur-sm">
         <div>
           <div className="flex justify-center mb-6">
             <img

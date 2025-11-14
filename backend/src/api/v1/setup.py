@@ -68,6 +68,8 @@ async def initialize_application(
         admin_username=setup_data.admin_username,
         admin_password=setup_data.admin_password,
         household_name=setup_data.household_name,
+        smtp_config=setup_data.smtp_config,
+        proxy_config=setup_data.proxy_config,
     )
 
     return InitialSetupResponse(**result)

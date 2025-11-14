@@ -41,16 +41,56 @@ Inspired by [Mealie](https://github.com/mealie-recipes/mealie), Pantrie brings t
 
 ### Docker Deployment (Recommended)
 
+The easiest way to get started with Pantrie is using Docker. All services (PostgreSQL, Redis, Backend, Frontend) are containerized and managed together.
+
+**Prerequisites:**
+- Docker 20.10+
+- Docker Compose 2.0+
+
+**Quick Start:**
 ```bash
-# Using docker-compose
+# Clone the repository
 git clone https://github.com/untraceablez/pantrie.git
 cd pantrie
-docker-compose up -d
+
+# Start all services
+./scripts/docker-start.sh
 ```
 
 Visit `http://localhost:5173` to start using Pantrie!
 
-### Manual Installation
+**Docker Management Commands:**
+```bash
+# Start the environment
+./scripts/docker-start.sh
+
+# Stop the environment (preserves data)
+./scripts/docker-stop.sh
+
+# View logs (all services)
+./scripts/docker-logs.sh
+
+# View logs (specific service)
+./scripts/docker-logs.sh backend
+
+# Open a shell in a container
+./scripts/docker-shell.sh backend
+./scripts/docker-shell.sh postgres
+
+# Reset everything (WARNING: deletes all data!)
+./scripts/docker-reset.sh
+```
+
+**What's Running:**
+- **Frontend:** http://localhost:5173 (React + Vite)
+- **Backend API:** http://localhost:8000 (FastAPI)
+- **API Documentation:** http://localhost:8000/api/docs (Swagger UI)
+- **PostgreSQL:** localhost:5432
+- **Redis:** localhost:6379
+
+### Manual Installation (Advanced)
+
+For development without Docker:
 
 **Prerequisites:**
 - Python 3.11+
@@ -61,11 +101,12 @@ Visit `http://localhost:5173` to start using Pantrie!
 **Backend Setup:**
 ```bash
 cd backend
-./setup.sh
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your database configuration
 alembic upgrade head
-python -m src.db.seed
 uvicorn src.main:app --reload
 ```
 
