@@ -3,7 +3,7 @@ name: docs
 on:
   push:
     branches:
-      - gh-pages
+      - 001-household-inventory
 
 permissions:
   contents: write
