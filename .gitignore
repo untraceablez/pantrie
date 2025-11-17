@@ -24,6 +24,7 @@ venv/
 ENV/
 env/
 mkvenv/
+docs-venv/
 
 # Node.js
 node_modules/
@@ -79,6 +80,8 @@ Thumbs.db
 # Misc
 .cache/
 .parcel-cache/
+claude-chats/
 
 # MkDocs
 site/
+

@@ -1,10 +1,10 @@
 site_name: Pantrie Documentation
 site_description: Household inventory management system
 site_author: Pantrie Team
-site_url: https://untraceablez.github.io/pantrie-spec/
+site_url: https://untraceablez.github.io/pantrie/
 
-repo_name: pantrie-spec
-repo_url: https://github.com/untraceablez/pantrie-spec
+repo_name: pantrie
+repo_url: https://github.com/untraceablez/pantrie
 edit_uri: edit/main/docs/
 
 # Development server configuration
@@ -32,11 +32,18 @@ theme:
     - navigation.sections
     - navigation.expand
     - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - navigation.tracking
     - search.suggest
     - search.highlight
+    - search.share
+    - toc.follow
+    - toc.integrate
     - content.tabs.link
     - content.code.annotation
     - content.code.copy
+    - content.tooltips
   language: en
   icon:
     repo: fontawesome/brands/github
@@ -101,4 +108,20 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/untraceablez/pantrie-spec
+      link: https://github.com/untraceablez/pantrie
+  version:
+    provider: mike
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: >-
+            Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: >-
+            Thanks for your feedback! Help us improve by opening an issue on GitHub.
