@@ -1,11 +1,9 @@
-name: ci
+name: docs
 
 on:
   push:
     branches:
-      - master
-      - main
-      - 001-household-inventory
+      - gh-pages
 
 permissions:
   contents: write
