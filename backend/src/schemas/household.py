@@ -64,3 +64,10 @@ class HouseholdWithMembership(HouseholdResponse):
     """Schema for household with user's membership role."""
 
     user_role: MemberRole
+
+
+class AddMemberRequest(BaseModel):
+    """Schema for adding a member to a household."""
+
+    email: str = Field(min_length=1)
+    role: MemberRole

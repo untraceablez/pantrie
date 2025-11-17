@@ -3,6 +3,7 @@ import { listHouseholds, updateHousehold, HouseholdWithRole } from '@/services/h
 import { useAuthStore } from '@/store/authStore'
 import LocationManager from './LocationManager'
 import AllergenManager from './AllergenManager'
+import HouseholdMembers from './HouseholdMembers'
 
 export default function HouseholdSettings() {
   const { user } = useAuthStore()
@@ -189,6 +190,11 @@ export default function HouseholdSettings() {
           )}
         </form>
       </div>
+
+      {/* Household Members */}
+      {selectedHouseholdId && (
+        <HouseholdMembers householdId={selectedHouseholdId} isAdmin={selectedHousehold?.user_role === 'admin'} />
+      )}
 
       {/* Allergen Manager */}
       {selectedHouseholdId && (

@@ -13,10 +13,7 @@ from src.config import get_settings
 from src.db.base import Base
 
 # Import all models to ensure they're registered with Base.metadata
-# Add model imports here as they are created
-# from src.models.user import User
-# from src.models.category import Category
-# from src.models.location import Location
+import src.models  # noqa: F401 - Import all models for metadata registration
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

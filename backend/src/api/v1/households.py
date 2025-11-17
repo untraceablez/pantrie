@@ -2,8 +2,11 @@
 from fastapi import APIRouter, Depends, status
 
 from src.core.deps import CurrentUserId, DbSession
+from src.models.household_membership import MemberRole
 from src.schemas.household import (
+    AddMemberRequest,
     HouseholdCreate,
+    HouseholdMemberUpdate,
     HouseholdResponse,
     HouseholdUpdate,
     HouseholdWithMembership,
@@ -68,3 +71,58 @@ async def delete_household(
     """Delete household (admin only)."""
     household_service = HouseholdService(db)
     await household_service.delete_household(household_id, user_id)
+
+
+# Member management endpoints
+
+
+@router.get("/{household_id}/members")
+async def list_household_members(
+    household_id: int,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> list[dict]:
+    """List all members of a household."""
+    household_service = HouseholdService(db)
+    return await household_service.list_household_members(household_id, user_id)
+
+
+@router.post("/{household_id}/members", status_code=status.HTTP_201_CREATED)
+async def add_household_member(
+    household_id: int,
+    member_data: AddMemberRequest,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> dict:
+    """Add a new member to the household (admin only)."""
+    household_service = HouseholdService(db)
+    return await household_service.add_household_member(
+        household_id, user_id, member_data.email, member_data.role
+    )
+
+
+@router.patch("/{household_id}/members/{membership_id}")
+async def update_member_role(
+    household_id: int,
+    membership_id: int,
+    update_data: HouseholdMemberUpdate,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> dict:
+    """Update a member's role in the household (admin only)."""
+    household_service = HouseholdService(db)
+    return await household_service.update_member_role(
+        household_id, user_id, membership_id, update_data.role
+    )
+
+
+@router.delete("/{household_id}/members/{membership_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_household_member(
+    household_id: int,
+    membership_id: int,
+    user_id: CurrentUserId,
+    db: DbSession,
+) -> None:
+    """Remove a member from the household (admin only)."""
+    household_service = HouseholdService(db)
+    await household_service.remove_household_member(household_id, user_id, membership_id)

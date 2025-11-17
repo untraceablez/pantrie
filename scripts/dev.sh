@@ -6,6 +6,21 @@ set -e
 echo "🚀 Starting Pantrie in development mode..."
 echo ""
 
+# Check and start Docker services
+echo "🐳 Checking Docker services..."
+if ! docker ps --filter name=pantrie-postgres --filter status=running | grep -q pantrie-postgres; then
+    echo "   Starting PostgreSQL..."
+    docker start pantrie-postgres 2>/dev/null || docker-compose -f docker-compose.dev.yml up -d postgres
+fi
+
+if ! docker ps --filter name=pantrie-redis --filter status=running | grep -q pantrie-redis; then
+    echo "   Starting Redis..."
+    docker start pantrie-redis 2>/dev/null || docker-compose -f docker-compose.dev.yml up -d redis
+fi
+
+echo "   ✓ Database and cache ready"
+echo ""
+
 # Function to cleanup on exit
 cleanup() {
     echo ""

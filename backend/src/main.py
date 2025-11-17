@@ -5,12 +5,18 @@ from typing import AsyncGenerator
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.api.v1 import allergen, auth, barcode, households, inventory, locations, users
+from sqlalchemy import select
+
+from src.api.v1 import allergen, auth, barcode, email_confirmation, households, inventory, locations, setup, site_admin, site_settings, users
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
+from src.db.session import get_db
+from src.models.system_settings import SystemSettings
 
 # Setup structured logging
 logger = setup_logging()
@@ -22,6 +28,30 @@ settings = get_settings()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager."""
     logger.info("Application starting up", version=settings.APP_VERSION)
+
+    # Load proxy settings and update CORS origins
+    async for db in get_db():
+        try:
+            result = await db.execute(select(SystemSettings))
+            sys_settings = result.scalar_one_or_none()
+
+            if sys_settings and sys_settings.custom_domain:
+                protocol = "https" if sys_settings.use_https else "http"
+                custom_origin = f"{protocol}://{sys_settings.custom_domain}"
+
+                # Find CORS middleware and update origins
+                for middleware in app.user_middleware:
+                    if middleware.cls.__name__ == "CORSMiddleware":
+                        current_origins = list(middleware.options.get("allow_origins", []))
+                        if custom_origin not in current_origins:
+                            current_origins.append(custom_origin)
+                            logger.info(f"Added custom domain to CORS origins: {custom_origin}")
+                        break
+        except Exception as e:
+            logger.warning(f"Failed to load proxy settings: {e}")
+        finally:
+            break
+
     yield
     logger.info("Application shutting down")
 
@@ -35,11 +65,52 @@ app = FastAPI(
     redoc_url="/api/redoc" if settings.ENVIRONMENT != "production" else None,
 )
 
-# CORS middleware - must be added first (middleware applies in reverse order)
+# Proxy headers middleware - handles X-Forwarded-* headers from reverse proxies
+class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+    """Middleware to handle proxy headers from reverse proxies and Cloudflare."""
+
+    async def dispatch(self, request: Request, call_next):
+        # Trust X-Forwarded-For, X-Forwarded-Proto, X-Forwarded-Host headers
+        # These are set by reverse proxies like nginx, Cloudflare Tunnel, etc.
+
+        # Get the real client IP from X-Forwarded-For or CF-Connecting-IP (Cloudflare)
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        cf_connecting_ip = request.headers.get("CF-Connecting-IP")
+
+        if cf_connecting_ip:
+            request.scope["client"] = (cf_connecting_ip, 0)
+        elif forwarded_for:
+            # X-Forwarded-For can contain multiple IPs, take the first one
+            client_ip = forwarded_for.split(",")[0].strip()
+            request.scope["client"] = (client_ip, 0)
+
+        # Handle X-Forwarded-Proto (http/https)
+        forwarded_proto = request.headers.get("X-Forwarded-Proto")
+        if forwarded_proto:
+            request.scope["scheme"] = forwarded_proto
+
+        # Handle X-Forwarded-Host
+        forwarded_host = request.headers.get("X-Forwarded-Host")
+        if forwarded_host:
+            request.scope["server"] = (forwarded_host, None)
+
+        response = await call_next(request)
+        return response
+
+# Add proxy headers middleware first
+app.add_middleware(ProxyHeadersMiddleware)
+
+# CORS middleware - must be added after proxy middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=[
+        "*",  # Allow all origins - suitable for public APIs and reverse proxies
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://pantrie.taylorcohron.me",
+        "https://pantrie.taylorcohron.me",
+    ],
+    allow_credentials=True,  # Allow cookies/auth headers through reverse proxy
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
@@ -108,12 +179,16 @@ async def pantrie_exception_handler(request: Request, exc: PantrieException) -> 
 
 
 # Register API routers
+app.include_router(setup.router, prefix="/api/v1")  # Setup must be first (no auth required)
+app.include_router(email_confirmation.router, prefix="/api/v1")  # Email confirmation (no auth required)
 app.include_router(allergen.router, prefix="/api/v1/households", tags=["allergens"])
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(barcode.router, prefix="/api/v1")
 app.include_router(households.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
 app.include_router(locations.router, prefix="/api/v1")
+app.include_router(site_admin.router, prefix="/api/v1")  # Site admin endpoints
+app.include_router(site_settings.router, prefix="/api/v1")  # Site settings endpoints
 app.include_router(users.router, prefix="/api/v1")
 
 

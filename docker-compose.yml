@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pantrie-postgres
+    environment:
+      POSTGRES_DB: pantrie
+      POSTGRES_USER: pantrie
+      POSTGRES_PASSWORD: pantrie
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantrie"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pantrie-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: pantrie-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pantrie-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: pantrie-backend
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - DATABASE_URL=postgresql+asyncpg://pantrie:pantrie@postgres:5432/pantrie
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=dev-secret-key-change-in-production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=15
+      - REFRESH_TOKEN_EXPIRE_DAYS=30
+      - CORS_ORIGINS=["http://localhost:3000","http://localhost:5173","http://localhost:5174","http://127.0.0.1:5173","http://127.0.0.1:5174","http://127.0.0.1:3000"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend-venv:/app/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - pantrie-network
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: pantrie-frontend
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - pantrie-network
+    stdin_open: true
+    tty: true
+
+  nginx:
+    image: nginx:alpine
+    container_name: pantrie-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - pantrie-network
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
+  backend-venv:
+  frontend-node-modules:
+
+networks:
+  pantrie-network:
+    driver: bridge

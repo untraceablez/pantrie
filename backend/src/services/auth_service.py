@@ -17,6 +17,7 @@ from src.core.security import (
 from src.models.refresh_token import RefreshToken
 from src.models.user import User
 from src.schemas.user import TokenResponse, UserCreate, UserLogin
+from src.services.email_service import EmailService
 
 logger = setup_logging()
 settings = get_settings()
@@ -46,12 +47,13 @@ class AuthService:
                 details={"username": user_data.username},
             )
 
-        # Create new user
+        # Create new user (not verified by default - they need to confirm email)
         hashed_pw = hash_password(user_data.password)
         user = User(
             email=user_data.email,
             username=user_data.username,
             hashed_password=hashed_pw,
+            is_verified=False,  # New users must verify email
         )
 
         self.db.add(user)
@@ -59,6 +61,27 @@ class AuthService:
         await self.db.refresh(user)
 
         logger.info("User registered", user_id=user.id, email=user.email)
+
+        # Send confirmation email if SMTP is configured
+        smtp_settings = await EmailService.get_smtp_settings(self.db)
+        if smtp_settings and smtp_settings.smtp_host and smtp_settings.require_email_confirmation:
+            try:
+                # Get base URL from settings or use default
+                base_url = getattr(settings, "FRONTEND_URL", "http://localhost:5173")
+                await EmailService.send_confirmation_email(self.db, user, base_url)
+                logger.info("Confirmation email sent", user_id=user.id, email=user.email)
+                # Refresh user after email service commits the token
+                await self.db.refresh(user)
+            except Exception as e:
+                logger.error(
+                    "Failed to send confirmation email",
+                    user_id=user.id,
+                    email=user.email,
+                    error=str(e),
+                )
+                # Don't fail registration if email sending fails
+                # User can request a new confirmation email later
+
         return user
 
     async def login(self, login_data: UserLogin) -> TokenResponse:
@@ -78,8 +101,20 @@ class AuthService:
         if not user.is_active:
             raise AuthenticationError(message="User account is disabled")
 
+        # Check if email is verified (only if SMTP is configured and requires confirmation)
+        smtp_settings = await EmailService.get_smtp_settings(self.db)
+        if smtp_settings and smtp_settings.require_email_confirmation:
+            if not user.is_verified:
+                raise AuthenticationError(
+                    message="Email not verified. Please check your email for a confirmation link."
+                )
+
         # Generate tokens
-        access_token = create_access_token({"sub": str(user.id), "email": user.email})
+        access_token = create_access_token({
+            "sub": str(user.id),
+            "email": user.email,
+            "site_role": user.site_role
+        })
         refresh_token_str = create_refresh_token({"sub": str(user.id)})
 
         # Store refresh token
@@ -128,7 +163,11 @@ class AuthService:
             raise AuthenticationError(message="User not found or inactive")
 
         # Generate new access token
-        access_token = create_access_token({"sub": str(user.id), "email": user.email})
+        access_token = create_access_token({
+            "sub": str(user.id),
+            "email": user.email,
+            "site_role": user.site_role
+        })
 
         logger.info("Access token refreshed", user_id=user.id)
 

@@ -7,6 +7,7 @@ from src.models.household_membership import HouseholdMembership
 from src.models.inventory_item import InventoryItem
 from src.models.location import Location
 from src.models.refresh_token import RefreshToken
+from src.models.system_settings import SystemSettings
 from src.models.user import User
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "InventoryItem",
     "Location",
     "RefreshToken",
+    "SystemSettings",
     "User",
 ]

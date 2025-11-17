@@ -3,6 +3,7 @@ export interface User {
   email: string
   username: string
   role: 'admin' | 'editor' | 'viewer'
+  site_role: 'user' | 'site_administrator'
   created_at: string
   updated_at: string
 }

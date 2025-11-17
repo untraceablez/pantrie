@@ -2,6 +2,7 @@
 from typing import Annotated
 
 from fastapi import Depends, Header
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config import Settings, get_settings
@@ -9,6 +10,7 @@ from src.core.cache import CacheService, get_cache_service
 from src.core.exceptions import AuthenticationError
 from src.core.security import decode_token
 from src.db.session import get_db
+from src.models.user import User
 
 # Common dependency annotations
 DbSession = Annotated[AsyncSession, Depends(get_db)]
@@ -72,6 +74,21 @@ async def get_current_user_role(
         raise AuthenticationError(message="Token validation failed", details={"error": str(e)})
 
 
+async def get_current_user(
+    user_id: Annotated[int, Depends(get_current_user_id)],
+    db: DbSession,
+) -> User:
+    """Get the current authenticated user from the database."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise AuthenticationError(message="User not found")
+
+    return user
+
+
 # Type aliases for dependency injection
 CurrentUserId = Annotated[int, Depends(get_current_user_id)]
 CurrentUserRole = Annotated[str, Depends(get_current_user_role)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
