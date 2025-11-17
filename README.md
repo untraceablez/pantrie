@@ -10,7 +10,7 @@
   [![GitHub Stars](https://img.shields.io/github/stars/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/stargazers)
   [![GitHub Issues](https://img.shields.io/github/issues/untraceablez/pantrie)](https://github.com/untraceablez/pantrie/issues)
 
-  [No Demo Yet](https://pantrie.example.com) · [Documentation](https://pantrie.org) · [Report Bug](https://github.com/untraceablez/pantrie/issues)
+  [No Demo Yet](https://demo.pantrie.org) · [Documentation](https://docs.pantrie.org) · [Report Bug](https://github.com/untraceablez/pantrie/issues)
 </div>
 
 ---
