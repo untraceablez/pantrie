@@ -1,11 +1,11 @@
 site_name: Pantrie Documentation
 site_description: Household inventory management system
-site_author: Pantrie Team
+site_author: Taylor Cohron
 site_url: https://docs.pantrie.org/
 
 repo_name: pantrie
 repo_url: https://github.com/untraceablez/pantrie
-edit_uri: edit/001-household-inventory/docs/
+edit_uri: edit/gh-pages/docs/
 
 # Development server configuration
 dev_addr: '127.0.0.1:8001'  # Use port 8001 to avoid conflict with API on port 8000

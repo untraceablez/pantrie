@@ -84,7 +84,7 @@ If you encounter any issues or have questions:
 
 1. Check the [User Guide](user-guide/overview.md)
 2. Review the [API Documentation](api/overview.md)
-3. Open an issue on [GitHub](https://github.com/untraceablez/pantrie-spec/issues)
+3. Open an issue on [GitHub](https://github.com/untraceablez/pantrie/issues)
 
 ## License
 
