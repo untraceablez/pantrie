@@ -1,14 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 import { useThemeStore } from '@/store/themeStore'
-import { login } from '@/services/auth'
+import { login, getOAuthProviders, initiateOAuth } from '@/services/auth'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oauthProviders, setOauthProviders] = useState<string[]>([])
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -17,6 +18,19 @@ export default function Login() {
 
   // Get success message from location state (e.g., from setup completion)
   const successMessage = (location.state as any)?.message
+
+  // Fetch available OAuth providers on mount
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const providers = await getOAuthProviders()
+        setOauthProviders(providers)
+      } catch (err) {
+        console.error('Failed to fetch OAuth providers:', err)
+      }
+    }
+    fetchProviders()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,6 +46,19 @@ export default function Login() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleOAuthLogin = (provider: string) => {
+    const redirectUri = `${window.location.origin}/oauth/callback`
+    initiateOAuth(provider, redirectUri)
+  }
+
+  const getProviderDisplayName = (provider: string) => {
+    const names: Record<string, string> = {
+      google: 'Google',
+      authentik: 'Authentik',
+    }
+    return names[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
   }
 
   return (
@@ -115,6 +142,34 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
+
+          {oauthProviders.length > 0 && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {oauthProviders.map((provider) => (
+                  <button
+                    key={provider}
+                    type="button"
+                    onClick={() => handleOAuthLogin(provider)}
+                    className="w-full flex items-center justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:ring-primary"
+                  >
+                    <span>Sign in with {getProviderDisplayName(provider)}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="text-center">
             <p className="text-sm text-gray-600 dark:text-gray-400">

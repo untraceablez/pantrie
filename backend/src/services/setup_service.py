@@ -11,9 +11,10 @@ from src.models.household import Household
 from src.models.system_settings import SystemSettings
 from src.schemas.user import UserCreate
 from src.schemas.household import HouseholdCreate
-from src.schemas.setup import SMTPConfig, ProxyConfig
+from src.schemas.setup import SMTPConfig, ProxyConfig, OAuthConfig
 from src.services.auth_service import AuthService
 from src.services.household_service import HouseholdService
+import os
 
 
 class SetupService:
@@ -44,6 +45,7 @@ class SetupService:
         household_name: str,
         smtp_config: Optional[SMTPConfig] = None,
         proxy_config: Optional[ProxyConfig] = None,
+        oauth_config: Optional[OAuthConfig] = None,
     ) -> dict:
         """
         Perform initial application setup.
@@ -137,6 +139,39 @@ class SetupService:
                     settings.use_https = proxy_config.use_https
 
             await db.commit()
+
+        # Write OAuth credentials to .env file if provided
+        if oauth_config:
+            env_file_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
+            env_vars = {}
+
+            # Read existing .env file if it exists
+            if os.path.exists(env_file_path):
+                with open(env_file_path, 'r') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith('#') and '=' in line:
+                            key, value = line.split('=', 1)
+                            env_vars[key] = value
+
+            # Update OAuth credentials
+            if oauth_config.google_client_id and oauth_config.google_client_secret:
+                env_vars['OAUTH_GOOGLE_CLIENT_ID'] = oauth_config.google_client_id
+                env_vars['OAUTH_GOOGLE_CLIENT_SECRET'] = oauth_config.google_client_secret
+
+            if (oauth_config.authentik_client_id and
+                oauth_config.authentik_client_secret and
+                oauth_config.authentik_base_url and
+                oauth_config.authentik_slug):
+                env_vars['OAUTH_AUTHENTIK_CLIENT_ID'] = oauth_config.authentik_client_id
+                env_vars['OAUTH_AUTHENTIK_CLIENT_SECRET'] = oauth_config.authentik_client_secret
+                env_vars['OAUTH_AUTHENTIK_BASE_URL'] = oauth_config.authentik_base_url
+                env_vars['OAUTH_AUTHENTIK_SLUG'] = oauth_config.authentik_slug
+
+            # Write back to .env file
+            with open(env_file_path, 'w') as f:
+                for key, value in env_vars.items():
+                    f.write(f'{key}={value}\n')
 
         return {
             "user": {

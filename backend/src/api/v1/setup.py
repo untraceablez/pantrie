@@ -70,6 +70,7 @@ async def initialize_application(
         household_name=setup_data.household_name,
         smtp_config=setup_data.smtp_config,
         proxy_config=setup_data.proxy_config,
+        oauth_config=setup_data.oauth_config,
     )
 
     return InitialSetupResponse(**result)

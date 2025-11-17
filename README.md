@@ -139,12 +139,10 @@ Full installation instructions available in the [documentation](https://pantrie.
 
 Pantrie is under active development. Here's what's planned:
 
-- [ ] Shopping list generation from low-stock items
 - [ ] Recipe integration (sync with Mealie!)
 - [ ] Notification system for expiring items
 - [ ] Import/export functionality
 - [ ] Multi-language support
-- [ ] Mobile-responsive PWA
 
 See the [project board](https://github.com/untraceablez/pantrie/projects) for detailed progress.
 

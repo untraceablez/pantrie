@@ -93,6 +93,13 @@ class AuthService:
         if not user:
             raise AuthenticationError(message="Invalid email or password")
 
+        # Check if this is an OAuth-only user
+        if user.hashed_password is None:
+            provider_name = user.oauth_provider.title() if user.oauth_provider else "OAuth"
+            raise AuthenticationError(
+                message=f"This account uses {provider_name} authentication. Please sign in with {provider_name}."
+            )
+
         # Verify password
         if not verify_password(login_data.password, user.hashed_password):
             raise AuthenticationError(message="Invalid email or password")

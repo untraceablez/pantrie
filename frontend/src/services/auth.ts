@@ -73,3 +73,14 @@ export const getCurrentUser = async (): Promise<User> => {
   const response = await apiClient.get<User>('/auth/me')
   return response.data
 }
+
+export const getOAuthProviders = async (): Promise<string[]> => {
+  const response = await apiClient.get<{ providers: string[] }>('/auth/oauth/providers')
+  return response.data.providers
+}
+
+export const initiateOAuth = (provider: string, redirectUri: string): void => {
+  // Redirect to backend OAuth authorize endpoint
+  const authorizeUrl = `${apiClient.defaults.baseURL}/auth/oauth/${provider}/authorize?redirect_uri=${encodeURIComponent(redirectUri)}`
+  window.location.href = authorizeUrl
+}

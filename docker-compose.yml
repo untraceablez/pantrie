@@ -70,7 +70,7 @@ services:
       dockerfile: Dockerfile.dev
     container_name: pantrie-frontend
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=
     ports:
       - "5173:5173"
     volumes:

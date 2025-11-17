@@ -71,3 +71,12 @@ class RateLimitError(PantrieException):
         self, message: str = "Rate limit exceeded", details: dict[str, Any] | None = None
     ):
         super().__init__(message=message, status_code=429, details=details)
+
+
+class ConfigurationError(PantrieException):
+    """Configuration error."""
+
+    def __init__(
+        self, message: str = "Configuration error", details: dict[str, Any] | None = None
+    ):
+        super().__init__(message=message, status_code=500, details=details)

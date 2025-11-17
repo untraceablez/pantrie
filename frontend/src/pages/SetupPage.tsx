@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setupService } from '../services/setupService';
 
-type SetupStep = 'admin' | 'smtp';
+type SetupStep = 'admin' | 'smtp' | 'oauth';
+type OAuthProvider = 'none' | 'google' | 'authentik';
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -30,6 +31,16 @@ export default function SetupPage() {
 
   const [skipSMTP, setSkipSMTP] = useState(false);
 
+  const [oauthProvider, setOAuthProvider] = useState<OAuthProvider>('none');
+  const [oauthData, setOAuthData] = useState({
+    google_client_id: '',
+    google_client_secret: '',
+    authentik_client_id: '',
+    authentik_client_secret: '',
+    authentik_base_url: '',
+    authentik_slug: '',
+  });
+
   const handleAdminChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setAdminData((prev) => ({
       ...prev,
@@ -44,6 +55,18 @@ export default function SetupPage() {
       ...prev,
       [e.target.name]: value,
     }));
+    if (error) setError(null);
+  };
+
+  const handleOAuthChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    if (e.target.name === 'oauth_provider') {
+      setOAuthProvider(e.target.value as OAuthProvider);
+    } else {
+      setOAuthData((prev) => ({
+        ...prev,
+        [e.target.name]: e.target.value,
+      }));
+    }
     if (error) setError(null);
   };
 
@@ -85,6 +108,14 @@ export default function SetupPage() {
   const handleSMTPSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Move to OAuth step
+    setCurrentStep('oauth');
+  };
+
+  const handleOAuthSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
     setLoading(true);
 
     try {
@@ -105,6 +136,27 @@ export default function SetupPage() {
           smtp_from_email: smtpData.smtp_from_email,
           smtp_from_name: smtpData.smtp_from_name,
           smtp_use_tls: smtpData.smtp_use_tls,
+        };
+      }
+
+      // Include OAuth config based on selected provider
+      if (oauthProvider === 'google' && oauthData.google_client_id && oauthData.google_client_secret) {
+        setupData.oauth_config = {
+          google_client_id: oauthData.google_client_id,
+          google_client_secret: oauthData.google_client_secret,
+        };
+      } else if (
+        oauthProvider === 'authentik' &&
+        oauthData.authentik_client_id &&
+        oauthData.authentik_client_secret &&
+        oauthData.authentik_base_url &&
+        oauthData.authentik_slug
+      ) {
+        setupData.oauth_config = {
+          authentik_client_id: oauthData.authentik_client_id,
+          authentik_client_secret: oauthData.authentik_client_secret,
+          authentik_base_url: oauthData.authentik_base_url,
+          authentik_slug: oauthData.authentik_slug,
         };
       }
 
@@ -168,7 +220,9 @@ export default function SetupPage() {
             <p className="text-gray-600 dark:text-gray-400">
               {currentStep === 'admin'
                 ? "Let's get started by setting up your administrator account"
-                : 'Configure email settings for user invitations (optional)'}
+                : currentStep === 'smtp'
+                ? 'Configure email settings for user invitations (optional)'
+                : 'Configure OAuth authentication (optional)'}
             </p>
           </div>
 
@@ -189,10 +243,22 @@ export default function SetupPage() {
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   currentStep === 'smtp'
                     ? 'bg-blue-600 text-white'
+                    : currentStep === 'oauth'
+                    ? 'bg-green-500 text-white'
                     : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
                 }`}
               >
-                2
+                {currentStep === 'oauth' ? '✓' : '2'}
+              </div>
+              <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600"></div>
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  currentStep === 'oauth'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                3
               </div>
             </div>
           </div>
@@ -498,6 +564,223 @@ export default function SetupPage() {
                   disabled={loading || (!smtpData.smtp_host && !skipSMTP)}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  Continue to OAuth Setup
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 3: OAuth Configuration */}
+          {currentStep === 'oauth' && (
+            <form onSubmit={handleOAuthSubmit} className="space-y-6">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Configure OAuth to allow users to sign in with Google or Authentik. This is optional and can be
+                  configured later in the settings.
+                </p>
+              </div>
+
+              {/* OAuth Provider Selection */}
+              <div>
+                <label
+                  htmlFor="oauth_provider"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Authentication Method
+                </label>
+                <select
+                  id="oauth_provider"
+                  name="oauth_provider"
+                  value={oauthProvider}
+                  onChange={handleOAuthChange}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="none">Local Authentication Only</option>
+                  <option value="google">Google OAuth</option>
+                  <option value="authentik">Authentik OAuth</option>
+                </select>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Choose how users will authenticate with Pantrie
+                </p>
+              </div>
+
+              {/* Google OAuth Fields */}
+              {oauthProvider === 'google' && (
+                <>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      To configure Google OAuth, you'll need to create OAuth 2.0 credentials in the{' '}
+                      <a
+                        href="https://console.cloud.google.com/apis/credentials"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium underline hover:no-underline"
+                      >
+                        Google Cloud Console
+                      </a>
+                      . Follow{' '}
+                      <a
+                        href="https://support.google.com/cloud/answer/6158849?hl=en"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium underline hover:no-underline"
+                      >
+                        Google's OAuth 2.0 setup guide
+                      </a>
+                      .
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="google_client_id"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Google Client ID
+                    </label>
+                    <input
+                      type="text"
+                      id="google_client_id"
+                      name="google_client_id"
+                      value={oauthData.google_client_id}
+                      onChange={handleOAuthChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="123456789-abc123.apps.googleusercontent.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="google_client_secret"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Google Client Secret
+                    </label>
+                    <input
+                      type="password"
+                      id="google_client_secret"
+                      name="google_client_secret"
+                      value={oauthData.google_client_secret}
+                      onChange={handleOAuthChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="GOCSPX-••••••••"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Authentik OAuth Fields */}
+              {oauthProvider === 'authentik' && (
+                <>
+                  <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      To configure Authentik OAuth, follow our{' '}
+                      <a
+                        href="/docs/deployment/authentik-oauth"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium underline hover:no-underline"
+                      >
+                        Authentik OAuth setup guide
+                      </a>
+                      .
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="authentik_base_url"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Authentik Base URL
+                    </label>
+                    <input
+                      type="url"
+                      id="authentik_base_url"
+                      name="authentik_base_url"
+                      value={oauthData.authentik_base_url}
+                      onChange={handleOAuthChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="https://auth.example.com"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      The URL of your Authentik instance
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="authentik_slug"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Application Slug
+                    </label>
+                    <input
+                      type="text"
+                      id="authentik_slug"
+                      name="authentik_slug"
+                      value={oauthData.authentik_slug}
+                      onChange={handleOAuthChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="pantrie"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      The application slug from your Authentik application settings
+                    </p>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="authentik_client_id"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Authentik Client ID
+                    </label>
+                    <input
+                      type="text"
+                      id="authentik_client_id"
+                      name="authentik_client_id"
+                      value={oauthData.authentik_client_id}
+                      onChange={handleOAuthChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="pantrie"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="authentik_client_secret"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                    >
+                      Authentik Client Secret
+                    </label>
+                    <input
+                      type="password"
+                      id="authentik_client_secret"
+                      name="authentik_client_secret"
+                      value={oauthData.authentik_client_secret}
+                      onChange={handleOAuthChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Buttons */}
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('smtp')}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   {loading ? 'Setting up...' : 'Complete Setup'}
                 </button>
               </div>
@@ -509,7 +792,9 @@ export default function SetupPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {currentStep === 'admin'
                 ? 'This setup will create your administrator account and first household.'
-                : 'Email settings can be changed later in the administration settings.'}
+                : currentStep === 'smtp'
+                ? 'Email settings can be changed later in the administration settings.'
+                : 'OAuth settings can be changed later in the administration settings.'}
             </p>
           </div>
         </div>

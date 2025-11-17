@@ -28,6 +28,17 @@ class ProxyConfig(BaseModel):
     use_https: bool = Field(default=True, description="Use HTTPS")
 
 
+class OAuthConfig(BaseModel):
+    """OAuth configuration for external authentication providers."""
+
+    google_client_id: Optional[str] = Field(None, description="Google OAuth Client ID")
+    google_client_secret: Optional[str] = Field(None, description="Google OAuth Client Secret")
+    authentik_client_id: Optional[str] = Field(None, description="Authentik OAuth Client ID")
+    authentik_client_secret: Optional[str] = Field(None, description="Authentik OAuth Client Secret")
+    authentik_base_url: Optional[str] = Field(None, description="Authentik base URL")
+    authentik_slug: Optional[str] = Field(None, description="Authentik application slug")
+
+
 class InitialSetupRequest(BaseModel):
     """Schema for initial setup request."""
 
@@ -46,6 +57,9 @@ class InitialSetupRequest(BaseModel):
     )
     proxy_config: Optional[ProxyConfig] = Field(
         None, description="Reverse proxy configuration (optional)"
+    )
+    oauth_config: Optional[OAuthConfig] = Field(
+        None, description="OAuth configuration for external authentication (optional)"
     )
 
     @field_validator("admin_password")

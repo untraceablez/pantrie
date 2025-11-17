@@ -15,15 +15,15 @@ theme:
   palette:
     # Palette toggle for light mode
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: deep purple
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: deep purple
+      accent: deep purple
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -99,6 +99,8 @@ nav:
       - Reverse Proxy:
           - Cloudflare Tunnels: deployment/cloudflare-tunnels.md
           - NGINX Proxy Manager: deployment/nginx-proxy-manager.md
+      - OAuth Authentication:
+          - Authentik OAuth: deployment/authentik-oauth.md
 
 plugins:
   - search

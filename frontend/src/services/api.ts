@@ -1,12 +1,12 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '@/store/authStore'
 
-// API base URL from environment or default
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// API base URL from environment or use relative path for nginx proxying
+const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: API_BASE_URL ? `${API_BASE_URL}/api/v1` : '/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     OAUTH_GOOGLE_CLIENT_SECRET: str | None = None
     OAUTH_GITHUB_CLIENT_ID: str | None = None
     OAUTH_GITHUB_CLIENT_SECRET: str | None = None
+    OAUTH_AUTHENTIK_CLIENT_ID: str | None = None
+    OAUTH_AUTHENTIK_CLIENT_SECRET: str | None = None
+    OAUTH_AUTHENTIK_BASE_URL: str | None = None  # e.g., https://auth.example.com
+    OAUTH_AUTHENTIK_SLUG: str | None = None  # Application slug in Authentik
 
     # CORS
     CORS_ORIGINS: list[str] = Field(

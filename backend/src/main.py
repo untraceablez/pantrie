@@ -8,10 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
 from sqlalchemy import select
 
-from src.api.v1 import allergen, auth, barcode, email_confirmation, households, inventory, locations, setup, site_admin, site_settings, users
+from src.api.v1 import allergen, auth, barcode, email_confirmation, households, inventory, locations, oauth, setup, site_admin, site_settings, users
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
@@ -100,6 +101,9 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
 # Add proxy headers middleware first
 app.add_middleware(ProxyHeadersMiddleware)
 
+# Session middleware - required for OAuth flows
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
+
 # CORS middleware - must be added after proxy middleware
 app.add_middleware(
     CORSMiddleware,
@@ -183,6 +187,7 @@ app.include_router(setup.router, prefix="/api/v1")  # Setup must be first (no au
 app.include_router(email_confirmation.router, prefix="/api/v1")  # Email confirmation (no auth required)
 app.include_router(allergen.router, prefix="/api/v1/households", tags=["allergens"])
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(oauth.router, prefix="/api/v1")  # OAuth endpoints (no auth required)
 app.include_router(barcode.router, prefix="/api/v1")
 app.include_router(households.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
