@@ -89,6 +89,9 @@ nav:
       - Overview: deployment/overview.md
       - Docker: deployment/docker.md
       - Environment Variables: deployment/environment.md
+      - Reverse Proxy:
+          - Cloudflare Tunnels: deployment/cloudflare-tunnels.md
+          - NGINX Proxy Manager: deployment/nginx-proxy-manager.md
 
 plugins:
   - search

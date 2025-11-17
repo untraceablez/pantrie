@@ -3,9 +3,8 @@ import { useAuthStore } from '@/store/authStore'
 import SiteSettings from '@/components/SiteSettings'
 import UserManagement from '@/components/UserManagement'
 import HouseholdManagement from '@/components/HouseholdManagement'
-import ProxySettings from '@/components/ProxySettings'
 
-type AdminTab = 'smtp' | 'proxy' | 'users' | 'households'
+type AdminTab = 'smtp' | 'users' | 'households'
 
 export default function AdministrationSettings() {
   const { user } = useAuthStore()
@@ -28,7 +27,6 @@ export default function AdministrationSettings() {
 
   const tabs = [
     { id: 'smtp' as const, name: 'SMTP Settings', icon: '📧' },
-    { id: 'proxy' as const, name: 'Proxy Settings', icon: '🌐' },
     { id: 'users' as const, name: 'User Management', icon: '👨‍👩‍👧‍👦' },
     { id: 'households' as const, name: 'Household Management', icon: '🏘️' },
   ]
@@ -65,7 +63,6 @@ export default function AdministrationSettings() {
       {/* Tab Content */}
       <div>
         {activeTab === 'smtp' && <SiteSettings />}
-        {activeTab === 'proxy' && <ProxySettings />}
         {activeTab === 'users' && <UserManagement />}
         {activeTab === 'households' && <HouseholdManagement />}
       </div>

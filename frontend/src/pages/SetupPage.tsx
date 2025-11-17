@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setupService } from '../services/setupService';
 
-type SetupStep = 'admin' | 'smtp' | 'proxy';
+type SetupStep = 'admin' | 'smtp';
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -28,13 +28,6 @@ export default function SetupPage() {
     smtp_use_tls: true,
   });
 
-  const [proxyData, setProxyData] = useState({
-    proxy_mode: 'none',
-    external_proxy_url: '',
-    custom_domain: '',
-    use_https: true,
-  });
-
   const [skipSMTP, setSkipSMTP] = useState(false);
 
   const handleAdminChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,15 +41,6 @@ export default function SetupPage() {
   const handleSMTPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setSmtpData((prev) => ({
-      ...prev,
-      [e.target.name]: value,
-    }));
-    if (error) setError(null);
-  };
-
-  const handleProxyChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const value = e.target.type === 'checkbox' ? (e.target as HTMLInputElement).checked : e.target.value;
-    setProxyData((prev) => ({
       ...prev,
       [e.target.name]: value,
     }));
@@ -101,14 +85,6 @@ export default function SetupPage() {
   const handleSMTPSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    // Move to proxy step
-    setCurrentStep('proxy');
-  };
-
-  const handleProxySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
     setLoading(true);
 
     try {
@@ -131,14 +107,6 @@ export default function SetupPage() {
           smtp_use_tls: smtpData.smtp_use_tls,
         };
       }
-
-      // Include proxy config
-      setupData.proxy_config = {
-        proxy_mode: proxyData.proxy_mode,
-        external_proxy_url: proxyData.external_proxy_url || undefined,
-        custom_domain: proxyData.custom_domain || undefined,
-        use_https: proxyData.use_https,
-      };
 
       const result = await setupService.performInitialSetup(setupData);
 
@@ -200,9 +168,7 @@ export default function SetupPage() {
             <p className="text-gray-600 dark:text-gray-400">
               {currentStep === 'admin'
                 ? "Let's get started by setting up your administrator account"
-                : currentStep === 'smtp'
-                ? 'Configure email settings for user invitations (optional)'
-                : 'Configure reverse proxy and domain settings (optional)'}
+                : 'Configure email settings for user invitations (optional)'}
             </p>
           </div>
 
@@ -223,22 +189,10 @@ export default function SetupPage() {
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   currentStep === 'smtp'
                     ? 'bg-blue-600 text-white'
-                    : currentStep === 'proxy'
-                    ? 'bg-green-500 text-white'
                     : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
                 }`}
               >
-                {currentStep === 'proxy' ? '✓' : '2'}
-              </div>
-              <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600"></div>
-              <div
-                className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                  currentStep === 'proxy'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
-                }`}
-              >
-                3
+                2
               </div>
             </div>
           </div>
@@ -541,138 +495,7 @@ export default function SetupPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!smtpData.smtp_host && !skipSMTP}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next: Proxy Settings
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Step 3: Reverse Proxy Configuration */}
-          {currentStep === 'proxy' && (
-            <form onSubmit={handleProxySubmit} className="space-y-6">
-              {/* Proxy Mode */}
-              <div>
-                <label
-                  htmlFor="proxy_mode"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Reverse Proxy Mode
-                </label>
-                <select
-                  id="proxy_mode"
-                  name="proxy_mode"
-                  value={proxyData.proxy_mode}
-                  onChange={handleProxyChange}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="none">No Reverse Proxy (Direct Access)</option>
-                  <option value="builtin">Built-in Nginx Proxy</option>
-                  <option value="external">External Proxy (Cloudflare Tunnel, etc.)</option>
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Choose how you want to expose Pantrie to the internet
-                </p>
-              </div>
-
-              {/* External Proxy URL - Only shown for external mode */}
-              {proxyData.proxy_mode === 'external' && (
-                <div>
-                  <label
-                    htmlFor="external_proxy_url"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    External Proxy Address (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    id="external_proxy_url"
-                    name="external_proxy_url"
-                    value={proxyData.external_proxy_url}
-                    onChange={handleProxyChange}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="http://10.0.0.248:5173"
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    The internal address your proxy forwards to
-                  </p>
-                </div>
-              )}
-
-              {/* Custom Domain */}
-              {proxyData.proxy_mode !== 'none' && (
-                <div>
-                  <label
-                    htmlFor="custom_domain"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                  >
-                    Custom Domain
-                  </label>
-                  <input
-                    type="text"
-                    id="custom_domain"
-                    name="custom_domain"
-                    value={proxyData.custom_domain}
-                    onChange={handleProxyChange}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="pantrie.example.com"
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    The domain name you'll use to access Pantrie
-                  </p>
-                </div>
-              )}
-
-              {/* Use HTTPS */}
-              {proxyData.proxy_mode !== 'none' && (
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="use_https"
-                    name="use_https"
-                    checked={proxyData.use_https}
-                    onChange={handleProxyChange}
-                    className="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 dark:focus:ring-blue-400"
-                  />
-                  <label
-                    htmlFor="use_https"
-                    className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >
-                    Use HTTPS (Recommended)
-                  </label>
-                </div>
-              )}
-
-              {/* Info Box */}
-              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  {proxyData.proxy_mode === 'none' && (
-                    <>📌 Direct access mode - Pantrie will be accessible via IP:port</>
-                  )}
-                  {proxyData.proxy_mode === 'builtin' && (
-                    <>🔧 Built-in nginx will be configured to serve both frontend and backend on port 80/443</>
-                  )}
-                  {proxyData.proxy_mode === 'external' && (
-                    <>🌐 Configure your external proxy (Cloudflare Tunnel, nginx, etc.) to point to Pantrie</>
-                  )}
-                </p>
-              </div>
-
-              {/* Buttons */}
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setCurrentStep('smtp')}
-                  disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
+                  disabled={loading || (!smtpData.smtp_host && !skipSMTP)}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Setting up...' : 'Complete Setup'}
@@ -686,9 +509,7 @@ export default function SetupPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400">
               {currentStep === 'admin'
                 ? 'This setup will create your administrator account and first household.'
-                : currentStep === 'smtp'
-                ? 'Email settings can be changed later in the administration settings.'
-                : 'Proxy settings can be changed later in the administration settings.'}
+                : 'Email settings can be changed later in the administration settings.'}
             </p>
           </div>
         </div>
