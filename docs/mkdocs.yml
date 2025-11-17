@@ -5,7 +5,7 @@ site_url: https://docs.pantrie.org/
 
 repo_name: pantrie
 repo_url: https://github.com/untraceablez/pantrie
-edit_uri: edit/gh-pages/docs/
+edit_uri: edit/001-household-inventory/docs/docs/
 
 # Development server configuration
 dev_addr: '127.0.0.1:8001'  # Use port 8001 to avoid conflict with API on port 8000
