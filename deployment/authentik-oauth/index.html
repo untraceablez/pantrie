@@ -12,13 +12,11 @@
         <meta name="author" content="Taylor Cohron">
       
       
-        <link rel="canonical" href="https://docs.pantrie.org/development/database/">
+        <link rel="canonical" href="https://docs.pantrie.org/deployment/authentik-oauth/">
       
       
-        <link rel="prev" href="../frontend/">
+        <link rel="prev" href="../nginx-proxy-manager/">
       
-      
-        <link rel="next" href="../contributing/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -26,7 +24,7 @@
     
     
       
-        <title>Database - Pantrie Documentation</title>
+        <title>Authentik OAuth - Pantrie Documentation</title>
       
     
     
@@ -80,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#database" class="md-skip">
+        <a href="#authentik-oauth-configuration" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Database
+              Authentik OAuth
             
           </span>
         </div>
@@ -307,13 +305,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../architecture/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../development/architecture/" class="md-tabs__link">
           
   
     
@@ -329,11 +325,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../deployment/overview/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
           
   
     
@@ -846,182 +844,6 @@
       
   
   
-    
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      
-      
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
-            
-  
-  <span class="md-ellipsis">
-    Development
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            Development
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../architecture/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Architecture
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../backend/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Backend Setup
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../frontend/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Frontend Setup
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    Database
-  </span>
-  
-
-      </a>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../contributing/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Contributing
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
   
   
     
@@ -1051,7 +873,173 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Development
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Development
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/backend/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Backend Setup
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/frontend/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Frontend Setup
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/database/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Database
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="">
@@ -1065,7 +1053,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             Deployment
@@ -1079,7 +1067,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../deployment/overview/" class="md-nav__link">
+      <a href="../overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1100,7 +1088,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../deployment/docker/" class="md-nav__link">
+      <a href="../docker/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1121,7 +1109,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../deployment/environment/" class="md-nav__link">
+      <a href="../environment/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1190,7 +1178,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../deployment/cloudflare-tunnels/" class="md-nav__link">
+      <a href="../cloudflare-tunnels/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1211,7 +1199,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../deployment/nginx-proxy-manager/" class="md-nav__link">
+      <a href="../nginx-proxy-manager/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1237,8 +1225,10 @@
                 
   
   
+    
   
   
+  
     
     
       
@@ -1251,14 +1241,12 @@
       
       
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" checked>
         
           
           <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="">
@@ -1272,7 +1260,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_6_5">
             <span class="md-nav__icon md-icon"></span>
             OAuth Authentication
@@ -1283,10 +1271,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../deployment/authentik-oauth/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Authentik OAuth
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -1295,6 +1303,254 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-1-create-an-oauth-provider-in-authentik" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Create an OAuth Provider in Authentik
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 1: Create an OAuth Provider in Authentik">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#provider-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Provider Configuration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Settings
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-2-create-an-application-in-authentik" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Create an Application in Authentik
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 2: Create an Application in Authentik">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#application-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Application Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-3-get-oauth-credentials" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Get OAuth Credentials
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-4-configure-pantrie" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Configure Pantrie
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Configure Pantrie">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#during-initial-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      During Initial Setup
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#after-initial-setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      After Initial Setup
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-5-test-oauth-login" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Test OAuth Login
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auto-linking-existing-accounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Auto-Linking Existing Accounts
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oauth-provider-not-configured-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      "OAuth provider not configured" error
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redirect-uri-mismatch-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      Redirect URI mismatch error
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failed-to-authenticate-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Failed to authenticate" error
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#users-created-but-not-auto-linked" class="md-nav__link">
+    <span class="md-ellipsis">
+      Users created but not auto-linked
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Security Considerations
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security Considerations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#client-secret-protection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Client Secret Protection
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redirect-uri-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Redirect URI Validation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#user-access-control" class="md-nav__link">
+    <span class="md-ellipsis">
+      User Access Control
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#additional-resources" class="md-nav__link">
+    <span class="md-ellipsis">
+      Additional Resources
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1333,9 +1589,155 @@
   
 
 
-<h1 id="database">Database</h1>
-<p>Documentation coming soon.</p>
-<p>Database schema and migrations.</p>
+<h1 id="authentik-oauth-configuration">Authentik OAuth Configuration</h1>
+<p>This guide will help you configure Pantrie to use Authentik as an OAuth authentication provider.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>A running Authentik instance (self-hosted or cloud)</li>
+<li>Administrator access to Authentik</li>
+<li>Your Pantrie instance URL</li>
+</ul>
+<h2 id="step-1-create-an-oauth-provider-in-authentik">Step 1: Create an OAuth Provider in Authentik</h2>
+<ol>
+<li>Log in to your Authentik admin interface</li>
+<li>Navigate to <strong>Applications</strong> → <strong>Providers</strong></li>
+<li>Click <strong>Create</strong> and select <strong>OAuth2/OpenID Provider</strong></li>
+</ol>
+<h3 id="provider-configuration">Provider Configuration</h3>
+<p>Configure the following settings:</p>
+<ul>
+<li><strong>Name</strong>: <code>Pantrie</code></li>
+<li><strong>Authorization flow</strong>: <code>default-provider-authorization-implicit-consent</code> (or your preferred flow)</li>
+<li><strong>Client type</strong>: <code>Confidential</code></li>
+<li><strong>Redirect URIs/Origins</strong>: Add your Pantrie backend callback URL:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>https://your-pantrie-domain.com/api/v1/auth/oauth/authentik/callback
+</code></pre></div>
+  Or for local development:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>http://localhost:8000/api/v1/auth/oauth/authentik/callback
+</code></pre></div></li>
+</ul>
+<p><strong>Important</strong>: This must be the backend API endpoint, not the frontend URL.</p>
+<h3 id="advanced-settings">Advanced Settings</h3>
+<ul>
+<li><strong>Scopes</strong>: Ensure the following scopes are included:</li>
+<li><code>openid</code></li>
+<li><code>email</code></li>
+<li><code>profile</code></li>
+<li><strong>Subject mode</strong>: <code>Based on the User's hashed ID</code></li>
+<li><strong>Include claims in id_token</strong>: ✓ Enabled</li>
+</ul>
+<p>Click <strong>Create</strong> to save the provider.</p>
+<h2 id="step-2-create-an-application-in-authentik">Step 2: Create an Application in Authentik</h2>
+<ol>
+<li>Navigate to <strong>Applications</strong> → <strong>Applications</strong></li>
+<li>Click <strong>Create</strong></li>
+</ol>
+<h3 id="application-configuration">Application Configuration</h3>
+<ul>
+<li><strong>Name</strong>: <code>Pantrie</code></li>
+<li><strong>Slug</strong>: <code>pantrie</code></li>
+<li><strong>Provider</strong>: Select the <code>Pantrie</code> provider you just created</li>
+<li><strong>Launch URL</strong>: Your Pantrie instance URL (e.g., <code>https://your-pantrie-domain.com</code>)</li>
+</ul>
+<p>Click <strong>Create</strong> to save the application.</p>
+<h2 id="step-3-get-oauth-credentials">Step 3: Get OAuth Credentials</h2>
+<ol>
+<li>Go back to <strong>Applications</strong> → <strong>Providers</strong></li>
+<li>Click on the <strong>Pantrie</strong> provider you created</li>
+<li>Note down the following information:</li>
+<li><strong>Client ID</strong>: Found in the provider details</li>
+<li><strong>Client Secret</strong>: Click "Show" to reveal the secret</li>
+</ol>
+<h2 id="step-4-configure-pantrie">Step 4: Configure Pantrie</h2>
+<h3 id="during-initial-setup">During Initial Setup</h3>
+<p>When running through Pantrie's setup wizard:</p>
+<ol>
+<li>On the OAuth Configuration step, select <strong>Authentik</strong> from the dropdown</li>
+<li>Fill in the required fields:</li>
+<li><strong>Authentik Base URL</strong>: Your Authentik instance URL (e.g., <code>https://auth.example.com</code>)</li>
+<li><strong>Application Slug</strong>: The slug from Step 2 (e.g., <code>pantrie</code>)</li>
+<li><strong>Client ID</strong>: The Client ID from Step 3</li>
+<li><strong>Client Secret</strong>: The Client Secret from Step 3</li>
+</ol>
+<h3 id="after-initial-setup">After Initial Setup</h3>
+<p>If you need to add or update Authentik OAuth later:</p>
+<ol>
+<li>Log in as a site administrator</li>
+<li>Navigate to <strong>Settings</strong> → <strong>Administration</strong></li>
+<li>Go to the <strong>OAuth Settings</strong> tab</li>
+<li>Configure Authentik OAuth settings</li>
+</ol>
+<p>Alternatively, you can set environment variables:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">OAUTH_AUTHENTIK_BASE_URL</span><span class="o">=</span>https://auth.example.com
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nv">OAUTH_AUTHENTIK_SLUG</span><span class="o">=</span>pantrie
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nv">OAUTH_AUTHENTIK_CLIENT_ID</span><span class="o">=</span>your_client_id_here
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nv">OAUTH_AUTHENTIK_CLIENT_SECRET</span><span class="o">=</span>your_client_secret_here
+</code></pre></div>
+<h2 id="step-5-test-oauth-login">Step 5: Test OAuth Login</h2>
+<ol>
+<li>Navigate to your Pantrie login page</li>
+<li>You should see a "Sign in with Authentik" button</li>
+<li>Click the button to test the OAuth flow</li>
+<li>You'll be redirected to Authentik to authorize</li>
+<li>After authorization, you'll be redirected back to Pantrie and logged in</li>
+</ol>
+<h2 id="auto-linking-existing-accounts">Auto-Linking Existing Accounts</h2>
+<p>Pantrie will automatically link OAuth accounts to existing accounts if:</p>
+<ol>
+<li>The email address matches an existing user</li>
+<li>The email is verified by the OAuth provider</li>
+</ol>
+<p>This allows users to switch between local authentication and OAuth seamlessly.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="oauth-provider-not-configured-error">"OAuth provider not configured" error</h3>
+<ul>
+<li>Verify all three environment variables are set</li>
+<li>Restart the Pantrie backend container after setting variables</li>
+<li>Check the backend logs for OAuth initialization messages</li>
+</ul>
+<h3 id="redirect-uri-mismatch-error">Redirect URI mismatch error</h3>
+<ul>
+<li>Ensure the redirect URI in Authentik exactly matches your Pantrie callback URL</li>
+<li>Include the protocol (http/https)</li>
+<li>Check for trailing slashes</li>
+</ul>
+<h3 id="failed-to-authenticate-error">"Failed to authenticate" error</h3>
+<ul>
+<li>Verify the Client ID and Client Secret are correct</li>
+<li>Check that the required scopes (openid, email, profile) are enabled</li>
+<li>Ensure the Authentik provider is using a compatible authorization flow</li>
+</ul>
+<h3 id="users-created-but-not-auto-linked">Users created but not auto-linked</h3>
+<ul>
+<li>Verify the user's email in Pantrie matches exactly</li>
+<li>Check that the OAuth provider marks the email as verified</li>
+<li>Review the backend logs for auto-linking attempts</li>
+</ul>
+<h2 id="security-considerations">Security Considerations</h2>
+<h3 id="client-secret-protection">Client Secret Protection</h3>
+<ul>
+<li>Never commit the client secret to version control</li>
+<li>Use environment variables or secrets management</li>
+<li>Rotate the secret periodically</li>
+</ul>
+<h3 id="redirect-uri-validation">Redirect URI Validation</h3>
+<ul>
+<li>Only add redirect URIs you control</li>
+<li>Use HTTPS in production</li>
+<li>Avoid using wildcards in redirect URIs</li>
+</ul>
+<h3 id="user-access-control">User Access Control</h3>
+<ul>
+<li>Configure appropriate access policies in Authentik</li>
+<li>Use Authentik groups to manage user permissions</li>
+<li>Enable MFA in Authentik for enhanced security</li>
+</ul>
+<h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li><a href="https://goauthentik.io/docs/providers/oauth2">Authentik OAuth2 Provider Documentation</a></li>
+<li><a href="https://goauthentik.io/docs/applications">Authentik Application Configuration</a></li>
+<li><a href="https://openid.net/specs/openid-connect-core-1_0.html">OpenID Connect Specification</a></li>
+</ul>
 
 
 
@@ -1368,7 +1770,7 @@
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3h-2Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 13, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 17, 2025</span>
   </span>
 
     
@@ -1447,7 +1849,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../frontend/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Frontend Setup">
+          <a href="../nginx-proxy-manager/" class="md-footer__link md-footer__link--prev" aria-label="Previous: NGINX Proxy Manager">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
@@ -1457,27 +1859,11 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Frontend Setup
+                NGINX Proxy Manager
               </div>
             </div>
           </a>
         
-        
-          
-          <a href="../contributing/" class="md-footer__link md-footer__link--next" aria-label="Next: Contributing">
-            <div class="md-footer__title">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              <div class="md-ellipsis">
-                Contributing
-              </div>
-            </div>
-            <div class="md-footer__button md-icon">
-              
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
-            </div>
-          </a>
         
       </nav>
     

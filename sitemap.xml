@@ -21,6 +21,11 @@
          <changefreq>daily</changefreq>
     </url>
     <url>
+         <loc>https://docs.pantrie.org/deployment/authentik-oauth/</loc>
+         <lastmod>2025-11-17</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
          <loc>https://docs.pantrie.org/deployment/cloudflare-tunnels/</loc>
          <lastmod>2025-11-17</lastmod>
          <changefreq>daily</changefreq>
