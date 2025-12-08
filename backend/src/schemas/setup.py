@@ -39,6 +39,26 @@ class OAuthConfig(BaseModel):
     authentik_slug: Optional[str] = Field(None, description="Authentik application slug")
 
 
+class NotificationConfig(BaseModel):
+    """Notification configuration for the setup wizard."""
+
+    email_notifications_enabled: bool = Field(
+        default=False, description="Enable email notifications"
+    )
+    notify_expiring_items: bool = Field(
+        default=True, description="Notify about expiring items"
+    )
+    notify_low_stock: bool = Field(
+        default=True, description="Notify about low stock items"
+    )
+    notify_new_member: bool = Field(
+        default=True, description="Notify about new household members"
+    )
+    expiry_warning_days: int = Field(
+        default=7, ge=1, le=30, description="Days before expiry to send warning"
+    )
+
+
 class InitialSetupRequest(BaseModel):
     """Schema for initial setup request."""
 
@@ -60,6 +80,9 @@ class InitialSetupRequest(BaseModel):
     )
     oauth_config: Optional[OAuthConfig] = Field(
         None, description="OAuth configuration for external authentication (optional)"
+    )
+    notification_config: Optional[NotificationConfig] = Field(
+        None, description="Notification configuration (optional)"
     )
 
     @field_validator("admin_password")

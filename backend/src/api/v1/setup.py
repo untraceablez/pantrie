@@ -71,6 +71,7 @@ async def initialize_application(
         smtp_config=setup_data.smtp_config,
         proxy_config=setup_data.proxy_config,
         oauth_config=setup_data.oauth_config,
+        notification_config=setup_data.notification_config,
     )
 
     return InitialSetupResponse(**result)

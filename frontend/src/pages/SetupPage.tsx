@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { setupService } from '../services/setupService';
 
-type SetupStep = 'admin' | 'smtp' | 'oauth';
+type SetupStep = 'admin' | 'smtp' | 'notifications' | 'oauth';
 type OAuthProvider = 'none' | 'google' | 'authentik';
 
 export default function SetupPage() {
-  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<SetupStep>('admin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +27,16 @@ export default function SetupPage() {
     smtp_use_tls: true,
   });
 
+  const [notificationData, setNotificationData] = useState({
+    email_notifications_enabled: false,
+    notify_expiring_items: true,
+    notify_low_stock: true,
+    notify_new_member: true,
+    expiry_warning_days: 7,
+  });
+
   const [skipSMTP, setSkipSMTP] = useState(false);
+  const [skipNotifications, setSkipNotifications] = useState(false);
 
   const [oauthProvider, setOAuthProvider] = useState<OAuthProvider>('none');
   const [oauthData, setOAuthData] = useState({
@@ -54,6 +61,15 @@ export default function SetupPage() {
     setSmtpData((prev) => ({
       ...prev,
       [e.target.name]: value,
+    }));
+    if (error) setError(null);
+  };
+
+  const handleNotificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setNotificationData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.type === 'number' ? parseInt(value as string) || 7 : value,
     }));
     if (error) setError(null);
   };
@@ -109,7 +125,25 @@ export default function SetupPage() {
     e.preventDefault();
     setError(null);
 
+    // Move to notifications step
+    setCurrentStep('notifications');
+  };
+
+  const handleSkipSMTP = () => {
+    setSkipSMTP(true);
+    setCurrentStep('notifications');
+  };
+
+  const handleNotificationsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
     // Move to OAuth step
+    setCurrentStep('oauth');
+  };
+
+  const handleSkipNotifications = () => {
+    setSkipNotifications(true);
     setCurrentStep('oauth');
   };
 
@@ -136,6 +170,17 @@ export default function SetupPage() {
           smtp_from_email: smtpData.smtp_from_email,
           smtp_from_name: smtpData.smtp_from_name,
           smtp_use_tls: smtpData.smtp_use_tls,
+        };
+      }
+
+      // Only include notification config if not skipped
+      if (!skipNotifications) {
+        setupData.notification_config = {
+          email_notifications_enabled: notificationData.email_notifications_enabled,
+          notify_expiring_items: notificationData.notify_expiring_items,
+          notify_low_stock: notificationData.notify_low_stock,
+          notify_new_member: notificationData.notify_new_member,
+          expiry_warning_days: notificationData.expiry_warning_days,
         };
       }
 
@@ -179,13 +224,36 @@ export default function SetupPage() {
     }
   };
 
-  const handleSkipSMTP = () => {
-    setSkipSMTP(true);
-    // Create a form submit event to trigger the handleSMTPSubmit
-    const form = document.getElementById('smtp-form') as HTMLFormElement;
-    if (form) {
-      form.requestSubmit();
+  const getStepDescription = () => {
+    switch (currentStep) {
+      case 'admin':
+        return "Let's get started by setting up your administrator account";
+      case 'smtp':
+        return 'Configure email settings for user invitations (optional)';
+      case 'notifications':
+        return 'Configure notification preferences (optional)';
+      case 'oauth':
+        return 'Configure OAuth authentication (optional)';
     }
+  };
+
+  const getStepNumber = (step: SetupStep): number => {
+    switch (step) {
+      case 'admin':
+        return 1;
+      case 'smtp':
+        return 2;
+      case 'notifications':
+        return 3;
+      case 'oauth':
+        return 4;
+    }
+  };
+
+  const isStepComplete = (step: SetupStep): boolean => {
+    const currentStepNumber = getStepNumber(currentStep);
+    const checkStepNumber = getStepNumber(step);
+    return checkStepNumber < currentStepNumber;
   };
 
   return (
@@ -217,18 +285,13 @@ export default function SetupPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Welcome to Pantrie
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {currentStep === 'admin'
-                ? "Let's get started by setting up your administrator account"
-                : currentStep === 'smtp'
-                ? 'Configure email settings for user invitations (optional)'
-                : 'Configure OAuth authentication (optional)'}
-            </p>
+            <p className="text-gray-600 dark:text-gray-400">{getStepDescription()}</p>
           </div>
 
           {/* Progress Indicator */}
           <div className="flex items-center justify-center mb-6">
             <div className="flex items-center space-x-2">
+              {/* Step 1 */}
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   currentStep === 'admin'
@@ -236,21 +299,48 @@ export default function SetupPage() {
                     : 'bg-green-500 text-white'
                 }`}
               >
-                {currentStep !== 'admin' ? '✓' : '1'}
+                {isStepComplete('admin') ? '✓' : '1'}
               </div>
-              <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600"></div>
+              <div
+                className={`w-6 h-1 ${
+                  isStepComplete('admin') ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              ></div>
+              {/* Step 2 */}
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   currentStep === 'smtp'
                     ? 'bg-blue-600 text-white'
-                    : currentStep === 'oauth'
+                    : isStepComplete('smtp')
                     ? 'bg-green-500 text-white'
                     : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
                 }`}
               >
-                {currentStep === 'oauth' ? '✓' : '2'}
+                {isStepComplete('smtp') ? '✓' : '2'}
               </div>
-              <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600"></div>
+              <div
+                className={`w-6 h-1 ${
+                  isStepComplete('smtp') ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              ></div>
+              {/* Step 3 */}
+              <div
+                className={`flex items-center justify-center w-8 h-8 rounded-full ${
+                  currentStep === 'notifications'
+                    ? 'bg-blue-600 text-white'
+                    : isStepComplete('notifications')
+                    ? 'bg-green-500 text-white'
+                    : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                {isStepComplete('notifications') ? '✓' : '3'}
+              </div>
+              <div
+                className={`w-6 h-1 ${
+                  isStepComplete('notifications') ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              ></div>
+              {/* Step 4 */}
               <div
                 className={`flex items-center justify-center w-8 h-8 rounded-full ${
                   currentStep === 'oauth'
@@ -258,7 +348,7 @@ export default function SetupPage() {
                     : 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400'
                 }`}
               >
-                3
+                4
               </div>
             </div>
           </div>
@@ -557,20 +647,165 @@ export default function SetupPage() {
                   disabled={loading}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Skip for Now
+                  Skip
                 </button>
                 <button
                   type="submit"
-                  disabled={loading || (!smtpData.smtp_host && !skipSMTP)}
+                  disabled={loading || !smtpData.smtp_host}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Continue to OAuth Setup
+                  Continue
                 </button>
               </div>
             </form>
           )}
 
-          {/* Step 3: OAuth Configuration */}
+          {/* Step 3: Notifications Configuration */}
+          {currentStep === 'notifications' && (
+            <form id="notifications-form" onSubmit={handleNotificationsSubmit} className="space-y-6">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  Configure notification preferences for expiring items, low stock alerts, and more.
+                  {skipSMTP && ' Note: Email notifications require SMTP to be configured first.'}
+                </p>
+              </div>
+
+              {/* Enable Email Notifications */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div>
+                  <label className="text-sm font-medium text-gray-900 dark:text-white">
+                    Enable Email Notifications
+                  </label>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Send email alerts for enabled events
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  id="email_notifications_enabled"
+                  name="email_notifications_enabled"
+                  checked={notificationData.email_notifications_enabled}
+                  onChange={handleNotificationChange}
+                  disabled={skipSMTP}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+                />
+              </div>
+
+              {/* Notification Types */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  Notification Events
+                </h4>
+
+                {/* Expiring Items */}
+                <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Expiring Items
+                    </label>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Notify when items are about to expire
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="notify_expiring_items"
+                    name="notify_expiring_items"
+                    checked={notificationData.notify_expiring_items}
+                    onChange={handleNotificationChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+
+                {/* Expiry Warning Days */}
+                {notificationData.notify_expiring_items && (
+                  <div className="pl-4 py-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Days before expiry to send warning
+                    </label>
+                    <input
+                      type="number"
+                      id="expiry_warning_days"
+                      name="expiry_warning_days"
+                      min="1"
+                      max="30"
+                      value={notificationData.expiry_warning_days}
+                      onChange={handleNotificationChange}
+                      className="w-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
+
+                {/* Low Stock */}
+                <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Low Stock Alerts
+                    </label>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Notify when items are running low
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="notify_low_stock"
+                    name="notify_low_stock"
+                    checked={notificationData.notify_low_stock}
+                    onChange={handleNotificationChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+
+                {/* New Member */}
+                <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      New Household Members
+                    </label>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Notify when new members join a household
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    id="notify_new_member"
+                    name="notify_new_member"
+                    checked={notificationData.notify_new_member}
+                    onChange={handleNotificationChange}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep('smtp')}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSkipNotifications}
+                  disabled={loading}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Skip
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Step 4: OAuth Configuration */}
           {currentStep === 'oauth' && (
             <form onSubmit={handleOAuthSubmit} className="space-y-6">
               <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
@@ -771,7 +1006,7 @@ export default function SetupPage() {
               <div className="flex space-x-4">
                 <button
                   type="button"
-                  onClick={() => setCurrentStep('smtp')}
+                  onClick={() => setCurrentStep('notifications')}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors"
                 >
                   Back
@@ -794,6 +1029,8 @@ export default function SetupPage() {
                 ? 'This setup will create your administrator account and first household.'
                 : currentStep === 'smtp'
                 ? 'Email settings can be changed later in the administration settings.'
+                : currentStep === 'notifications'
+                ? 'Notification settings can be changed later in the settings menu.'
                 : 'OAuth settings can be changed later in the administration settings.'}
             </p>
           </div>

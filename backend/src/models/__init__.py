@@ -9,6 +9,7 @@ from src.models.location import Location
 from src.models.refresh_token import RefreshToken
 from src.models.system_settings import SystemSettings
 from src.models.user import User
+from src.models.webhook import Webhook
 
 __all__ = [
     "Category",
@@ -20,4 +21,5 @@ __all__ = [
     "RefreshToken",
     "SystemSettings",
     "User",
+    "Webhook",
 ]

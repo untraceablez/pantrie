@@ -11,7 +11,7 @@ from src.models.household import Household
 from src.models.system_settings import SystemSettings
 from src.schemas.user import UserCreate
 from src.schemas.household import HouseholdCreate
-from src.schemas.setup import SMTPConfig, ProxyConfig, OAuthConfig
+from src.schemas.setup import SMTPConfig, ProxyConfig, OAuthConfig, NotificationConfig
 from src.services.auth_service import AuthService
 from src.services.household_service import HouseholdService
 import os
@@ -46,11 +46,12 @@ class SetupService:
         smtp_config: Optional[SMTPConfig] = None,
         proxy_config: Optional[ProxyConfig] = None,
         oauth_config: Optional[OAuthConfig] = None,
+        notification_config: Optional[NotificationConfig] = None,
     ) -> dict:
         """
         Perform initial application setup.
 
-        Creates the first admin user, their household, and optionally configures SMTP and proxy.
+        Creates the first admin user, their household, and optionally configures SMTP, proxy, and notifications.
 
         Args:
             db: Database session
@@ -95,8 +96,8 @@ class SetupService:
             household_data=household_create,
         )
 
-        # Save SMTP and/or proxy configuration if provided
-        if smtp_config or proxy_config:
+        # Save SMTP, proxy, and/or notification configuration if provided
+        if smtp_config or proxy_config or notification_config:
             # Check if system settings already exist
             result = await db.execute(select(SystemSettings))
             settings = result.scalar_one_or_none()
@@ -118,6 +119,12 @@ class SetupService:
                     external_proxy_url=proxy_config.external_proxy_url if proxy_config else None,
                     custom_domain=proxy_config.custom_domain if proxy_config else None,
                     use_https=proxy_config.use_https if proxy_config else True,
+                    # Notification config
+                    email_notifications_enabled=notification_config.email_notifications_enabled if notification_config else False,
+                    notify_expiring_items=notification_config.notify_expiring_items if notification_config else True,
+                    notify_low_stock=notification_config.notify_low_stock if notification_config else True,
+                    notify_new_member=notification_config.notify_new_member if notification_config else True,
+                    expiry_warning_days=notification_config.expiry_warning_days if notification_config else 7,
                 )
                 db.add(settings)
             else:
@@ -137,6 +144,13 @@ class SetupService:
                     settings.external_proxy_url = proxy_config.external_proxy_url
                     settings.custom_domain = proxy_config.custom_domain
                     settings.use_https = proxy_config.use_https
+
+                if notification_config:
+                    settings.email_notifications_enabled = notification_config.email_notifications_enabled
+                    settings.notify_expiring_items = notification_config.notify_expiring_items
+                    settings.notify_low_stock = notification_config.notify_low_stock
+                    settings.notify_new_member = notification_config.notify_new_member
+                    settings.expiry_warning_days = notification_config.expiry_warning_days
 
             await db.commit()
 

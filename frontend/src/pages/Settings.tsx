@@ -6,20 +6,21 @@ import { logout } from '@/services/auth'
 import HouseholdSettings from '@/components/settings/HouseholdSettings'
 import UserSettings from '@/components/settings/UserSettings'
 import AdministrationSettings from '@/components/settings/AdministrationSettings'
+import NotificationSettings from '@/components/settings/NotificationSettings'
 
 type SettingsSection = 'household' | 'account' | 'administration' | 'notifications'
 
 export default function Settings() {
   const navigate = useNavigate()
   const { resolvedTheme } = useThemeStore()
-  const { user, refreshToken, logout: clearAuth } = useAuthStore()
+  const { refreshToken, logout: clearAuth } = useAuthStore()
   const [activeSection, setActiveSection] = useState<SettingsSection>('household')
 
   const sections = [
     { id: 'household' as const, name: 'Household Settings', icon: '🏠' },
     { id: 'account' as const, name: 'Account Settings', icon: '👤' },
     { id: 'administration' as const, name: 'Administration', icon: '👥' },
-    { id: 'notifications' as const, name: 'Notifications', icon: '🔔', disabled: true },
+    { id: 'notifications' as const, name: 'Notifications', icon: '🔔' },
   ]
 
   const handleLogout = async () => {
@@ -83,23 +84,15 @@ export default function Settings() {
               {sections.map((section) => (
                 <button
                   key={section.id}
-                  onClick={() => !section.disabled && setActiveSection(section.id)}
-                  disabled={section.disabled}
+                  onClick={() => setActiveSection(section.id)}
                   className={`w-full text-left px-4 py-3 rounded-md flex items-center space-x-3 transition-colors ${
                     activeSection === section.id
                       ? 'bg-blue-600 text-white'
-                      : section.disabled
-                      ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
                   <span className="text-xl">{section.icon}</span>
                   <span className="font-medium">{section.name}</span>
-                  {section.disabled && (
-                    <span className="ml-auto text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded">
-                      Coming Soon
-                    </span>
-                  )}
                 </button>
               ))}
               <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
@@ -120,12 +113,7 @@ export default function Settings() {
               {activeSection === 'household' && <HouseholdSettings />}
               {activeSection === 'account' && <UserSettings />}
               {activeSection === 'administration' && <AdministrationSettings />}
-              {activeSection === 'notifications' && (
-                <div className="p-6">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Notifications</h2>
-                  <p className="text-gray-600 dark:text-gray-400">Coming soon...</p>
-                </div>
-              )}
+              {activeSection === 'notifications' && <NotificationSettings />}
             </div>
           </div>
         </div>

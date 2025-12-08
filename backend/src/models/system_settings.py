@@ -33,3 +33,20 @@ class SystemSettings(Base):
     external_proxy_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
     custom_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
     use_https: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    # Email Notification Settings
+    email_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+    notify_expiring_items: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
+    notify_low_stock: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
+    notify_new_member: Mapped[bool] = mapped_column(
+        Boolean, default=True, nullable=False
+    )
+    expiry_warning_days: Mapped[int] = mapped_column(
+        Integer, default=7, nullable=False
+    )  # Days before expiry to send warning
