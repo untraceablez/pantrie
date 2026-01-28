@@ -81,6 +81,8 @@ Thumbs.db
 .cache/
 .parcel-cache/
 claude-chats/
+.claude/
+.specify/
 
 # MkDocs
 docs/site/

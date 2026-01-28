@@ -71,6 +71,7 @@ services:
     container_name: pantrie-frontend
     environment:
       - VITE_API_URL=
+      - VITE_PROXY_TARGET=http://backend:8000
     ports:
       - "5173:5173"
     volumes:
@@ -87,7 +88,7 @@ services:
     image: nginx:alpine
     container_name: pantrie-nginx
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
