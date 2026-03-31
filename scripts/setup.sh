@@ -9,9 +9,6 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 echo "🐍 Setting up Python virtual environment..."
 
-# Change to project root
-cd "$PROJECT_ROOT"
-
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
     python3 -m venv venv
@@ -27,26 +24,18 @@ source venv/bin/activate
 echo "📦 Upgrading pip..."
 pip install --upgrade pip
 
-# Install dependencies (always use absolute path)
-REQUIREMENTS_PATH="$PROJECT_ROOT/backend/requirements.txt"
-
-if [ -f "$REQUIREMENTS_PATH" ]; then
-    echo "📦 Installing dependencies from $REQUIREMENTS_PATH..."
-    pip install -r "$REQUIREMENTS_PATH"
+# Install dependencies using absolute path to requirements.txt
+REQUIREMENTS_FILE="$PROJECT_ROOT/backend/requirements.txt"
+if [ -f "$REQUIREMENTS_FILE" ]; then
+    echo "📦 Installing dependencies from $REQUIREMENTS_FILE..."
+    pip install -r "$REQUIREMENTS_FILE"
 else
-    echo "❌ Requirements file not found at $REQUIREMENTS_PATH"
+    echo "❌ Error: Requirements file not found at $REQUIREMENTS_FILE"
     exit 1
 fi
 
 echo ""
 echo "✅ Backend setup complete!"
-echo ""
-
-# Start frontend in background
-echo "⚛️  Starting frontend server..."
-cd "$PROJECT_ROOT/frontend"
-npm run dev -- --host 0.0.0.0 &
-FRONTEND_PID=$!
 echo ""
 echo "To activate the virtual environment, run:"
 echo "  source venv/bin/activate"
