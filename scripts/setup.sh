@@ -5,7 +5,7 @@ set -e
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 
 echo "🐍 Setting up Python virtual environment..."
 
@@ -24,13 +24,13 @@ source venv/bin/activate
 echo "📦 Upgrading pip..."
 pip install --upgrade pip
 
-# Install dependencies using absolute path to requirements.txt
+# Install dependencies using absolute path
+echo "📦 Installing dependencies..."
 REQUIREMENTS_FILE="$PROJECT_ROOT/backend/requirements.txt"
 if [ -f "$REQUIREMENTS_FILE" ]; then
-    echo "📦 Installing dependencies from $REQUIREMENTS_FILE..."
     pip install -r "$REQUIREMENTS_FILE"
 else
-    echo "❌ Error: Requirements file not found at $REQUIREMENTS_FILE"
+    echo "❌ Requirements file not found: $REQUIREMENTS_FILE"
     exit 1
 fi
 
