@@ -1,12 +1,30 @@
 #!/bin/bash
-# Development server script - runs both backend and frontend
+# Development startup script for Pantrie
 
 set -e
 
-echo "🚀 Starting Pantrie in development mode..."
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🚀 Starting Pantrie development environment..."
 echo ""
 
-# Check and start Docker services
+# Change to project root
+cd "$PROJECT_ROOT"
+
+# Ensure backend and frontend directories exist
+if [ ! -d "backend" ]; then
+    echo "❌ Backend directory not found"
+    exit 1
+fi
+
+if [ ! -d "frontend" ]; then
+    echo "❌ Frontend directory not found"
+    exit 1
+fi
+
+# Start Docker services
 echo "🐳 Checking Docker services..."
 if ! docker ps --filter name=pantrie-postgres --filter status=running | grep -q pantrie-postgres; then
     echo "   Starting PostgreSQL..."
@@ -33,21 +51,19 @@ trap cleanup SIGINT SIGTERM
 
 # Start backend in background
 echo "🐍 Starting backend server..."
-cd backend
-source venv/bin/activate
+cd "$PROJECT_ROOT/backend"
+source "$SCRIPT_DIR/venv/bin/activate"
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
-cd ..
 
 # Wait a moment for backend to start
 sleep 2
 
 # Start frontend in background
 echo "⚛️  Starting frontend server..."
-cd frontend
+cd "$PROJECT_ROOT/frontend"
 npm run dev &
 FRONTEND_PID=$!
-cd ..
 
 echo ""
 echo "✅ Servers started!"
