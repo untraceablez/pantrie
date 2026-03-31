@@ -62,7 +62,7 @@ sleep 2
 # Start frontend in background
 echo "⚛️  Starting frontend server..."
 cd "$PROJECT_ROOT/frontend"
-npm run dev &
+npm run dev -- --host 0.0.0.0 &
 FRONTEND_PID=$!
 
 echo ""

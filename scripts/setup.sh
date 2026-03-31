@@ -41,6 +41,13 @@ fi
 echo ""
 echo "✅ Backend setup complete!"
 echo ""
+
+# Start frontend in background
+echo "⚛️  Starting frontend server..."
+cd "$PROJECT_ROOT/frontend"
+npm run dev -- --host 0.0.0.0 &
+FRONTEND_PID=$!
+echo ""
 echo "To activate the virtual environment, run:"
 echo "  source venv/bin/activate"
 echo ""
