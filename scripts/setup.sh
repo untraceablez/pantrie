@@ -6,8 +6,13 @@ set -e
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+BACKEND_DIR="$PROJECT_ROOT/backend"
 
 echo "🐍 Setting up Python virtual environment..."
+
+echo "📁 Script location: $SCRIPT_DIR"
+echo "📁 Project root: $PROJECT_ROOT"
+echo "📁 Backend directory: $BACKEND_DIR"
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
@@ -25,9 +30,11 @@ echo "📦 Upgrading pip..."
 pip install --upgrade pip
 
 # Install dependencies using absolute path
-echo "📦 Installing dependencies..."
-REQUIREMENTS_FILE="$PROJECT_ROOT/backend/requirements.txt"
+REQUIREMENTS_FILE="$BACKEND_DIR/requirements.txt"
+echo "📁 Looking for requirements file at: $REQUIREMENTS_FILE"
+
 if [ -f "$REQUIREMENTS_FILE" ]; then
+    echo "📦 Installing dependencies from $REQUIREMENTS_FILE..."
     pip install -r "$REQUIREMENTS_FILE"
 else
     echo "❌ Requirements file not found: $REQUIREMENTS_FILE"
@@ -36,10 +43,4 @@ fi
 
 echo ""
 echo "✅ Backend setup complete!"
-echo ""
-echo "To activate the virtual environment, run:"
-echo "  source venv/bin/activate"
-echo ""
-echo "To run the backend server, run:"
-echo "  uvicorn src.main:app --reload"
 echo ""
