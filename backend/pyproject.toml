@@ -85,11 +85,14 @@ addopts = [
     "--cov-report=xml",
 ]
 asyncio_mode = "auto"
+# "D:" entries are defaults — applied only if the variable is not already set,
+# so running inside the backend container can inject the `postgres` host via -e.
 env = [
-    "ENVIRONMENT=test",
-    "DATABASE_URL=postgresql://pantrie_test:pantrie_test@localhost:5432/pantrie_test",
-    "REDIS_URL=redis://localhost:6379/1",
-    "JWT_SECRET=test-secret-key-for-testing-only",
+    "D:ENVIRONMENT=test",
+    "D:DATABASE_URL=postgresql+asyncpg://pantrie:pantrie@localhost:5432/pantrie_test",
+    "D:TEST_DATABASE_URL=postgresql+asyncpg://pantrie:pantrie@localhost:5432/pantrie_test",
+    "D:REDIS_URL=redis://localhost:6379/1",
+    "D:JWT_SECRET=test-secret-key-for-testing-only",
 ]
 
 [tool.coverage.run]

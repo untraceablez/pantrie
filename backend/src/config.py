@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "Pantrie"
     APP_VERSION: str = "0.1.0"
-    ENVIRONMENT: Literal["development", "staging", "production"] = "development"
+    ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
     DEBUG: bool = False
 
     # Database
@@ -102,6 +102,10 @@ class Settings(BaseSettings):
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
+    # Per-API-client rate limit (Mealie integration); independent of user limits
+    CLIENT_RATE_LIMIT_PER_HOUR: int = 1000
+    # API client access token lifetime (minutes)
+    CLIENT_TOKEN_EXPIRE_MINUTES: int = 15
 
 
 @lru_cache

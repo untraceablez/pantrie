@@ -44,6 +44,27 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
     return encoded_jwt
 
 
+def create_client_token(
+    client_id: str, household_id: int, scopes: list[str]
+) -> tuple[str, int]:
+    """Create a short-lived API client access token.
+
+    Distinct from user tokens via ``type="client"``. Returns the token and its
+    lifetime in seconds.
+    """
+    expire_minutes = settings.CLIENT_TOKEN_EXPIRE_MINUTES
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expire_minutes)
+    to_encode = {
+        "sub": client_id,
+        "household_id": household_id,
+        "scopes": scopes,
+        "exp": expire,
+        "type": "client",
+    }
+    token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return token, expire_minutes * 60
+
+
 def create_refresh_token(data: dict[str, Any]) -> str:
     """Create a JWT refresh token."""
     to_encode = data.copy()
