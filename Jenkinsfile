@@ -48,7 +48,7 @@ pipeline {
   }
 
   options {
-    timestamps()
+    // timestamps() omitted — needs the Timestamper plugin (not installed)
     timeout(time: 30, unit: 'MINUTES')
   }
 
