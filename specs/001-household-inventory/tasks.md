@@ -1,5 +1,12 @@
 # Tasks: Household Inventory Management System
 
+> ⚠️ **Reconciliation note (2026-06-15)**: This task list was generated up front
+> and the checkboxes below were never maintained. The application is now
+> ~75–80% implemented (full MVP + multi-user RBAC + barcode + much beyond-spec
+> work). For the authoritative, verified status of what is built vs. pending,
+> see [STATUS.md](./STATUS.md). The unchecked boxes below do **not** reflect
+> reality.
+
 **Input**: Design documents from `/specs/001-household-inventory/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
