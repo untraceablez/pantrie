@@ -88,3 +88,5 @@ claude-chats/
 # MkDocs
 docs/site/
 
+# Claude
+.claude
