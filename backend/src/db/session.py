@@ -9,14 +9,16 @@ from src.config import get_settings
 
 settings = get_settings()
 
-# Create async engine
-engine = create_async_engine(
-    str(settings.DATABASE_URL),
-    echo=settings.DATABASE_ECHO,
-    pool_size=settings.DATABASE_POOL_SIZE,
-    max_overflow=settings.DATABASE_MAX_OVERFLOW,
-    poolclass=NullPool if settings.ENVIRONMENT == "test" else None,
-)
+# Create async engine. NullPool (used in tests) does not accept pool sizing
+# arguments, so only pass them when a real pool is in use.
+_engine_kwargs: dict[str, Any] = {"echo": settings.DATABASE_ECHO}
+if settings.ENVIRONMENT == "test":
+    _engine_kwargs["poolclass"] = NullPool
+else:
+    _engine_kwargs["pool_size"] = settings.DATABASE_POOL_SIZE
+    _engine_kwargs["max_overflow"] = settings.DATABASE_MAX_OVERFLOW
+
+engine = create_async_engine(str(settings.DATABASE_URL), **_engine_kwargs)
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(
