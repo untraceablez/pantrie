@@ -5,6 +5,7 @@ import LocationManager from './LocationManager'
 import AllergenManager from './AllergenManager'
 import HouseholdMembers from './HouseholdMembers'
 import ApiClientManager from './ApiClientManager'
+import MealieConnectionSettings from './MealieConnectionSettings'
 
 export default function HouseholdSettings() {
   const { user } = useAuthStore()
@@ -210,6 +211,14 @@ export default function HouseholdSettings() {
       {/* API Clients (Mealie integration) */}
       {selectedHouseholdId && (
         <ApiClientManager
+          householdId={selectedHouseholdId}
+          isAdmin={selectedHousehold?.user_role === 'admin'}
+        />
+      )}
+
+      {/* Mealie connection (Pantrie -> Mealie) */}
+      {selectedHouseholdId && (
+        <MealieConnectionSettings
           householdId={selectedHouseholdId}
           isAdmin={selectedHousehold?.user_role === 'admin'}
         />
