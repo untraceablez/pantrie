@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore'
 import LocationManager from './LocationManager'
 import AllergenManager from './AllergenManager'
 import HouseholdMembers from './HouseholdMembers'
+import ApiClientManager from './ApiClientManager'
 
 export default function HouseholdSettings() {
   const { user } = useAuthStore()
@@ -204,6 +205,14 @@ export default function HouseholdSettings() {
       {/* Location Manager */}
       {selectedHouseholdId && (
         <LocationManager householdId={selectedHouseholdId} canEdit={canEdit} />
+      )}
+
+      {/* API Clients (Mealie integration) */}
+      {selectedHouseholdId && (
+        <ApiClientManager
+          householdId={selectedHouseholdId}
+          isAdmin={selectedHousehold?.user_role === 'admin'}
+        />
       )}
     </div>
   )
