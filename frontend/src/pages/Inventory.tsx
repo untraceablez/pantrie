@@ -222,6 +222,13 @@ export default function Inventory() {
             </div>
             <div className="flex items-center space-x-3">
               <button
+                onClick={() => navigate('/recipes')}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                title="Recipes"
+              >
+                Recipes
+              </button>
+              <button
                 onClick={() => navigate('/settings')}
                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
                 title="Settings"

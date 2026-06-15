@@ -10,6 +10,7 @@ import EmailConfirmationPage from '@/pages/EmailConfirmationPage'
 import OAuthCallback from '@/pages/OAuthCallback'
 import AddItem from '@/pages/AddItem'
 import Inventory from '@/pages/Inventory'
+import Recipes from '@/pages/Recipes'
 import Settings from '@/pages/Settings'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/recipes"
+            element={
+              <ProtectedRoute>
+                <Recipes />
               </ProtectedRoute>
             }
           />

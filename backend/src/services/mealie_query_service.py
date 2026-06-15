@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.exceptions import NotFoundError
 from src.core.logging import setup_logging
 from src.models.inventory_item import InventoryItem
-from src.schemas.mealie import AvailabilityResult, DecrementResult, IngredientQuery
+from src.schemas.mealie import (
+    AvailabilityResult,
+    DecrementResult,
+    IngredientQuery,
+    RecipeMakeability,
+)
 
 logger = setup_logging()
 
@@ -82,6 +87,33 @@ class MealieQueryService:
             count=len(queries),
         )
         return results
+
+    async def annotate_makeability(
+        self, household_id: int, recipes: list[dict]
+    ) -> list[RecipeMakeability]:
+        """Annotate Mealie recipes with whether they're makeable from inventory.
+
+        Each recipe is ``{recipe_id, name, ingredients: [str]}``. A recipe is
+        makeable when it has ingredients and all of them are in stock.
+        """
+        annotated: list[RecipeMakeability] = []
+        for recipe in recipes:
+            ingredients: list[str] = recipe.get("ingredients", [])
+            results = await self.check_availability(
+                household_id, [IngredientQuery(name=n) for n in ingredients]
+            )
+            missing = [r.query for r in results if not r.in_stock]
+            annotated.append(
+                RecipeMakeability(
+                    recipe_id=recipe["recipe_id"],
+                    name=recipe["name"],
+                    makeable=bool(ingredients) and not missing,
+                    total_ingredients=len(ingredients),
+                    available_ingredients=len(ingredients) - len(missing),
+                    missing=missing,
+                )
+            )
+        return annotated
 
     async def decrement_item(
         self, household_id: int, item_id: int, amount: Decimal
