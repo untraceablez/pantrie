@@ -1,7 +1,8 @@
 """Pydantic schemas for client-facing inventory queries (Mealie integration)."""
+from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 
 class IngredientQuery(BaseModel):
@@ -52,3 +53,65 @@ class DecrementResult(BaseModel):
     removed: Decimal
     remaining: Decimal
     clamped: bool
+
+
+# --- Phase 2: outbound Mealie connection (Pantrie -> Mealie) ---
+
+
+class MealieConnectionConfig(BaseModel):
+    """Request to configure a household's Mealie connection."""
+
+    base_url: HttpUrl
+    api_key: str = Field(min_length=1)
+
+
+class MealieConnectionResponse(BaseModel):
+    """Mealie connection details (never includes the API key)."""
+
+    id: int
+    household_id: int
+    base_url: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RecipeMakeability(BaseModel):
+    """A Mealie recipe with whether it can be made from current inventory."""
+
+    recipe_id: str
+    name: str
+    makeable: bool
+    total_ingredients: int
+    available_ingredients: int
+    missing: list[str]
+
+
+class RecipesResponse(BaseModel):
+    """Recipes pulled from Mealie, annotated with makeability."""
+
+    recipes: list[RecipeMakeability]
+
+
+class ShoppingListPushRequest(BaseModel):
+    """Ingredients to add to the Mealie shopping list."""
+
+    items: list[str] = Field(min_length=1, max_length=100)
+
+
+class ShoppingListPushItem(BaseModel):
+    """Result of attempting to add one ingredient to the Mealie shopping list."""
+
+    name: str
+    added: bool
+    detail: str | None = None
+
+
+class ShoppingListPushResult(BaseModel):
+    """Outcome of pushing missing ingredients to a Mealie shopping list."""
+
+    requested: int
+    added: int
+    items: list[ShoppingListPushItem]

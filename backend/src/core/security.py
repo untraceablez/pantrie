@@ -1,14 +1,33 @@
 """Security utilities for password hashing and JWT token handling."""
+import base64
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import bcrypt
+from cryptography.fernet import Fernet
 from jose import JWTError, jwt
 
 from src.config import get_settings
 from src.core.exceptions import AuthenticationError
 
 settings = get_settings()
+
+
+def _fernet() -> Fernet:
+    """Build a Fernet cipher from the app secret key (32-byte derived key)."""
+    key = base64.urlsafe_b64encode(hashlib.sha256(settings.SECRET_KEY.encode()).digest())
+    return Fernet(key)
+
+
+def encrypt_secret(plaintext: str) -> str:
+    """Encrypt a value that must be recoverable later (e.g. an outbound API key)."""
+    return _fernet().encrypt(plaintext.encode()).decode()
+
+
+def decrypt_secret(token: str) -> str:
+    """Decrypt a value produced by encrypt_secret."""
+    return _fernet().decrypt(token.encode()).decode()
 
 
 def hash_password(password: str) -> str:
