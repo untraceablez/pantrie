@@ -61,6 +61,8 @@ coverage/
 *.cover
 # SonarQube scanner work dir
 .scannerwork/
+# Local CI/credentials helper (never commit)
+.ci-secrets
 .hypothesis/
 
 # Logs
