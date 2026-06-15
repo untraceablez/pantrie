@@ -11,6 +11,8 @@ from src.schemas.mealie import (
     AvailabilityResult,
     BulkAvailabilityRequest,
     BulkAvailabilityResponse,
+    DecrementRequest,
+    DecrementResult,
     IngredientQuery,
 )
 from src.services.client_auth_service import ClientAuthService
@@ -60,3 +62,19 @@ async def check_bulk_availability(
     service = MealieQueryService(db)
     results = await service.check_availability(client.household_id, body.ingredients)
     return BulkAvailabilityResponse(results=results)
+
+
+@router.post(
+    "/inventory/{item_id}/decrement",
+    response_model=DecrementResult,
+    dependencies=[Depends(enforce_client_rate_limit)],
+)
+async def decrement_item(
+    item_id: int,
+    body: DecrementRequest,
+    db: DbSession,
+    client: APIClient = Depends(require_client_scope("write")),
+) -> DecrementResult:
+    """Decrement an item's quantity (clamped to zero; write scope required)."""
+    service = MealieQueryService(db)
+    return await service.decrement_item(client.household_id, item_id, body.amount)
