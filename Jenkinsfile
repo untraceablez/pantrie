@@ -1,18 +1,51 @@
-// Jenkins pipeline: run backend + frontend tests with coverage, then SonarQube.
+// Jenkins pipeline (Kubernetes agents): backend + frontend tests with coverage,
+// then SonarQube analysis. Runs each step in a purpose-built container inside a
+// single agent pod; Postgres and Redis run as sidecars on shared localhost.
 //
-// Prerequisites on the Jenkins controller/agent:
-//   - Docker + `docker compose` available to the agent (for Postgres/Redis)
-//   - Python 3.12 and Node 20 on PATH
-//   - SonarQube server registered in Jenkins as 'SonarQube'
-//     (Manage Jenkins > System > SonarQube servers), with its auth token
-//   - A Sonar Scanner tool installation named 'SonarScanner'
-//     (Manage Jenkins > Tools > SonarQube Scanner)
+// Prerequisites (configured once in Jenkins):
+//   - Kubernetes plugin (this repo's agents are K8s pods)
+//   - SonarQube Scanner for Jenkins plugin, with a server named 'SonarQube'
+//     pointing at the in-cluster URL (e.g. http://sonarqube-public.sonarqube:9000)
+//     and a Sonar token credential. NOTE: prefer the http :9000 service URL over
+//     https :443 to avoid TLS hostname-mismatch on the internal cert.
+//   - For the quality gate: a SonarQube webhook -> https://<jenkins>/sonarqube-webhook/
 //
-// GitHub Actions remains the required PR gate; this pipeline adds the
-// SonarQube quality analysis (coverage + static analysis).
+// GitHub Actions remains the required PR gate; this adds SonarQube analysis.
+
+def podYaml = '''
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: python
+      image: python:3.12
+      command: ["sleep"]
+      args: ["infinity"]
+    - name: node
+      image: node:20
+      command: ["sleep"]
+      args: ["infinity"]
+    - name: sonar
+      image: sonarsource/sonar-scanner-cli:5
+      command: ["sleep"]
+      args: ["infinity"]
+    - name: postgres
+      image: postgres:16-alpine
+      env:
+        - { name: POSTGRES_USER, value: pantrie }
+        - { name: POSTGRES_PASSWORD, value: pantrie }
+        - { name: POSTGRES_DB, value: pantrie_test }
+    - name: redis
+      image: redis:7-alpine
+'''
 
 pipeline {
-  agent any
+  agent {
+    kubernetes {
+      yaml podYaml
+      defaultContainer 'python'
+    }
+  }
 
   options {
     timestamps()
@@ -27,50 +60,50 @@ pipeline {
   }
 
   stages {
-    stage('Start services') {
-      steps {
-        sh 'docker compose -f infrastructure/docker-compose.yml up -d postgres redis'
-        sh '''
-          PG=$(docker ps -qf name=postgres)
-          for i in $(seq 1 30); do
-            docker exec "$PG" pg_isready -U pantrie && break
-            sleep 2
-          done
-          docker exec "$PG" psql -U pantrie -d pantrie -c "CREATE DATABASE pantrie_test;" || true
-        '''
-      }
-    }
-
     stage('Backend tests + coverage') {
       steps {
-        sh '''
-          cd backend
-          python3.12 -m venv .venv
-          . .venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements-dev.txt
-          # pyproject addopts already emit coverage.xml (Cobertura) for Sonar
-          pytest tests/
-        '''
+        container('python') {
+          sh '''
+            cd backend
+            python -m venv .venv && . .venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements-dev.txt
+            # Wait for the postgres sidecar (shared localhost) to accept connections.
+            python - <<'PY'
+import socket, time
+for _ in range(60):
+    try:
+        socket.create_connection(("localhost", 5432), 1).close(); break
+    except OSError:
+        time.sleep(1)
+else:
+    raise SystemExit("postgres not ready")
+PY
+            pytest tests/   # pyproject addopts emit coverage.xml (Cobertura)
+          '''
+        }
       }
     }
 
     stage('Frontend tests + coverage') {
       steps {
-        sh '''
-          cd frontend
-          npm ci
-          npm run test:coverage   # emits coverage/lcov.info
-        '''
+        container('node') {
+          sh '''
+            cd frontend
+            npm ci
+            npm run test:coverage   # emits coverage/lcov.info
+          '''
+        }
       }
     }
 
     stage('SonarQube analysis') {
       steps {
-        script {
-          def scannerHome = tool 'SonarScanner'
+        container('sonar') {
           withSonarQubeEnv('SonarQube') {
-            sh "${scannerHome}/bin/sonar-scanner"
+            // sonar-scanner reads sonar-project.properties; withSonarQubeEnv
+            // injects SONAR_HOST_URL + SONAR_TOKEN from the server config.
+            sh 'sonar-scanner'
           }
         }
       }
@@ -78,16 +111,12 @@ pipeline {
 
     stage('Quality Gate') {
       steps {
+        // Requires the SonarQube -> Jenkins webhook; remove or set
+        // abortPipeline:false for the very first run if the webhook isn't set yet.
         timeout(time: 5, unit: 'MINUTES') {
           waitForQualityGate abortPipeline: true
         }
       }
-    }
-  }
-
-  post {
-    always {
-      sh 'docker compose -f infrastructure/docker-compose.yml down || true'
     }
   }
 }
