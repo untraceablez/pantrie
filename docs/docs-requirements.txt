@@ -2,3 +2,6 @@ mkdocs==1.5.3
 mkdocs-material==9.5.3
 pymdown-extensions==10.7
 mkdocs-git-revision-date-localized-plugin==1.2.4
+# Pin pygments: 2.19+ breaks with pymdown-extensions 10.7 (passes filename=None
+# to pygments' HtmlFormatter, which then calls html.escape(None)).
+pygments==2.18.0
