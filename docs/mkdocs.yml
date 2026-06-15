@@ -86,6 +86,7 @@ nav:
       - Overview: api/overview.md
       - Authentication: api/authentication.md
       - Endpoints: api/endpoints.md
+      - Mealie Integration: api/mealie-integration.md
   - Development:
       - Dev Environment: development/dev-environment.md
       - Architecture: development/architecture.md
