@@ -1,0 +1,115 @@
+"""Inventory queries for external clients: availability and decrement (US2/US3)."""
+from decimal import Decimal
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.core.exceptions import NotFoundError
+from src.core.logging import setup_logging
+from src.models.inventory_item import InventoryItem
+from src.schemas.mealie import AvailabilityResult, DecrementResult, IngredientQuery
+
+logger = setup_logging()
+
+
+class MealieQueryService:
+    """Match ingredient names to inventory and report/adjust availability.
+
+    Matching is name-based within a household: case-insensitive exact match
+    first, then a substring (ILIKE) fallback. Sufficiency is only computed when
+    the requested unit matches the stored unit (no unit conversion in the MVP).
+    """
+
+    def __init__(self, db: AsyncSession):
+        self.db = db
+
+    async def _find_matches(self, household_id: int, name: str) -> list[InventoryItem]:
+        normalized = name.strip().lower()
+
+        # Exact (case-insensitive) match first.
+        exact = await self.db.execute(
+            select(InventoryItem).where(
+                InventoryItem.household_id == household_id,
+                func.lower(InventoryItem.name) == normalized,
+            )
+        )
+        matches = list(exact.scalars().all())
+        if matches:
+            return matches
+
+        # Substring fallback.
+        fuzzy = await self.db.execute(
+            select(InventoryItem).where(
+                InventoryItem.household_id == household_id,
+                InventoryItem.name.ilike(f"%{name.strip()}%"),
+            )
+        )
+        return list(fuzzy.scalars().all())
+
+    @staticmethod
+    def _build_result(query: IngredientQuery, matches: list[InventoryItem]) -> AvailabilityResult:
+        if not matches:
+            return AvailabilityResult(query=query.name, in_stock=False)
+
+        # Prefer the match with the greatest quantity when several exist.
+        item = max(matches, key=lambda i: i.quantity)
+        result = AvailabilityResult(
+            query=query.name,
+            in_stock=item.quantity > 0,
+            matched_item_id=item.id,
+            matched_name=item.name,
+            quantity=item.quantity,
+            unit=item.unit,
+            ambiguous=len(matches) > 1,
+        )
+
+        if query.amount is not None and query.unit and item.unit:
+            if query.unit.strip().lower() == item.unit.strip().lower():
+                result.sufficiency_determinable = True
+                result.sufficient = item.quantity >= query.amount
+        return result
+
+    async def check_availability(
+        self, household_id: int, queries: list[IngredientQuery]
+    ) -> list[AvailabilityResult]:
+        results: list[AvailabilityResult] = []
+        for query in queries:
+            matches = await self._find_matches(household_id, query.name)
+            results.append(self._build_result(query, matches))
+        logger.info(
+            "Client availability check",
+            household_id=household_id,
+            count=len(queries),
+        )
+        return results
+
+    async def decrement_item(
+        self, household_id: int, item_id: int, amount: Decimal
+    ) -> DecrementResult:
+        result = await self.db.execute(
+            select(InventoryItem).where(
+                InventoryItem.id == item_id,
+                InventoryItem.household_id == household_id,
+            )
+        )
+        item = result.scalars().first()
+        if not item:
+            raise NotFoundError(message="Inventory item not found")
+
+        available = item.quantity
+        removed = min(available, amount)
+        clamped = amount > available
+        item.quantity = available - removed
+        await self.db.commit()
+        await self.db.refresh(item)
+
+        logger.info(
+            "Client decremented item",
+            household_id=household_id,
+            item_id=item_id,
+            removed=str(removed),
+            clamped=clamped,
+        )
+        return DecrementResult(
+            item_id=item_id, removed=removed, remaining=item.quantity, clamped=clamped
+        )

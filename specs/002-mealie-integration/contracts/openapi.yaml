@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: Pantrie — Mealie Integration API (Phase 1)
+  description: >
+    Phase 1 (Mealie → Pantrie) contracts: household-admin management of API
+    clients, the client-credentials token exchange, and client-facing inventory
+    availability/decrement endpoints. Phase 2 (Pantrie → Mealie) endpoints are
+    described in the spec and added in a later iteration.
+  version: 0.1.0
+
+servers:
+  - url: /api/v1
+
+tags:
+  - name: api-clients
+    description: Household-admin management of API clients (user-authenticated)
+  - name: client-gateway
+    description: Endpoints called by external API clients (client-authenticated)
+
+paths:
+  /households/{household_id}/api-clients:
+    post:
+      tags: [api-clients]
+      summary: Create an API client (household admin only)
+      security: [{ userBearer: [] }]
+      parameters:
+        - $ref: '#/components/parameters/HouseholdId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/APIClientCreate' }
+      responses:
+        '201':
+          description: Created. The client secret is returned ONCE and never again.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/APIClientCreated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    get:
+      tags: [api-clients]
+      summary: List API clients for the household (admin only); never returns secrets
+      security: [{ userBearer: [] }]
+      parameters:
+        - $ref: '#/components/parameters/HouseholdId'
+      responses:
+        '200':
+          description: List of clients
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/APIClient' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /households/{household_id}/api-clients/{client_pk}:
+    delete:
+      tags: [api-clients]
+      summary: Revoke (deactivate) an API client (admin only)
+      security: [{ userBearer: [] }]
+      parameters:
+        - $ref: '#/components/parameters/HouseholdId'
+        - name: client_pk
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: Revoked }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /clients/token:
+    post:
+      tags: [client-gateway]
+      summary: Exchange client credentials for a short-lived access token
+      description: Client-credentials grant. No user auth.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+      responses:
+        '200':
+          description: Access token issued
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /clients/inventory/availability:
+    get:
+      tags: [client-gateway]
+      summary: Check availability of a single ingredient by name (scope: read)
+      security: [{ clientBearer: [] }]
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string }
+        - name: amount
+          in: query
+          required: false
+          schema: { type: number }
+        - name: unit
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          description: Availability result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AvailabilityResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    post:
+      tags: [client-gateway]
+      summary: Bulk availability check (scope: read)
+      security: [{ clientBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkAvailabilityRequest' }
+      responses:
+        '200':
+          description: One result per requested ingredient
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: '#/components/schemas/AvailabilityResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /clients/inventory/{item_id}/decrement:
+    post:
+      tags: [client-gateway]
+      summary: Decrement an item's quantity (scope: write)
+      security: [{ clientBearer: [] }]
+      parameters:
+        - name: item_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DecrementRequest' }
+      responses:
+        '200':
+          description: Decrement applied (possibly clamped to zero)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DecrementResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  parameters:
+    HouseholdId:
+      name: household_id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  securitySchemes:
+    userBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Existing user access token (type "access").
+    clientBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: API client token (type "client") from /clients/token.
+
+  schemas:
+    APIClientCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100 }
+        permissions:
+          $ref: '#/components/schemas/Permissions'
+    Permissions:
+      type: object
+      properties:
+        read: { type: boolean, default: true }
+        write: { type: boolean, default: false }
+        delete: { type: boolean, default: false }
+    APIClient:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        client_id: { type: string }
+        permissions: { $ref: '#/components/schemas/Permissions' }
+        is_active: { type: boolean }
+        last_used_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+    APIClientCreated:
+      allOf:
+        - $ref: '#/components/schemas/APIClient'
+        - type: object
+          properties:
+            client_secret:
+              type: string
+              description: Plaintext secret, shown only once.
+    TokenRequest:
+      type: object
+      required: [client_id, client_secret]
+      properties:
+        client_id: { type: string }
+        client_secret: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        token_type: { type: string, example: bearer }
+        expires_in: { type: integer, description: Seconds until expiry }
+        scopes:
+          type: array
+          items: { type: string }
+    BulkAvailabilityRequest:
+      type: object
+      required: [ingredients]
+      properties:
+        ingredients:
+          type: array
+          maxItems: 100
+          items:
+            type: object
+            required: [name]
+            properties:
+              name: { type: string }
+              amount: { type: number, nullable: true }
+              unit: { type: string, nullable: true }
+    AvailabilityResult:
+      type: object
+      properties:
+        query: { type: string }
+        in_stock: { type: boolean }
+        matched_item_id: { type: integer, nullable: true }
+        matched_name: { type: string, nullable: true }
+        quantity: { type: number, nullable: true }
+        unit: { type: string, nullable: true }
+        sufficiency_determinable: { type: boolean }
+        sufficient: { type: boolean, nullable: true }
+        ambiguous: { type: boolean }
+    DecrementRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, minimum: 0 }
+        unit: { type: string, nullable: true }
+    DecrementResult:
+      type: object
+      properties:
+        item_id: { type: integer }
+        removed: { type: number }
+        remaining: { type: number }
+        clamped: { type: boolean }
+    Error:
+      type: object
+      properties:
+        detail: { type: string }
+
+  responses:
+    Unauthorized:
+      description: Missing/invalid/revoked credentials
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Insufficient role or scope, or cross-household access
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Per-client rate limit exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: Seconds until the window resets
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
