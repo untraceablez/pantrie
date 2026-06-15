@@ -137,12 +137,27 @@ Full installation instructions available in the [documentation](https://pantrie.
 
 ## Roadmap
 
-Pantrie is under active development. Here's what's planned:
+Pantrie is under active development. The core inventory app is functional today
+— multi-user households, role-based access, inventory CRUD with search/filter,
+barcode lookup, OAuth, email confirmation, and notifications/webhooks are all
+implemented.
 
-- [ ] Recipe integration (sync with Mealie!)
-- [ ] Notification system for expiring items
+**Shipped:**
+
+- [x] Multi-user households with role-based access (admin/editor/viewer)
+- [x] Inventory tracking with search, filter, and sort
+- [x] Barcode lookup (Open Food Facts)
+- [x] Notifications & webhooks for inventory events
+- [x] OAuth (Google, Authentik) and email confirmation
+
+**Planned:**
+
+- [ ] Recipe integration (sync with Mealie!) — *next up*
+- [ ] Test-coverage hardening (pytest + Vitest/Playwright)
 - [ ] Import/export functionality
+- [ ] Photo/image upload for items
 - [ ] Multi-language support
+- [ ] Kubernetes deployment manifests
 
 See the [project board](https://github.com/untraceablez/pantrie/projects) for detailed progress.
 
