@@ -87,6 +87,7 @@ nav:
       - Authentication: api/authentication.md
       - Endpoints: api/endpoints.md
   - Development:
+      - Dev Environment: development/dev-environment.md
       - Architecture: development/architecture.md
       - Backend Setup: development/backend.md
       - Frontend Setup: development/frontend.md

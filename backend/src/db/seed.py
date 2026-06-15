@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import AsyncSessionLocal
 from src.models.category import Category
-from src.models.location import Location
 
 
 async def seed_categories(session: AsyncSession) -> None:
@@ -92,53 +91,10 @@ async def seed_categories(session: AsyncSession) -> None:
     await session.commit()
 
 
-async def seed_locations(session: AsyncSession) -> None:
-    """Seed initial locations."""
-    locations = [
-        Location(
-            name="Pantry",
-            description="Main pantry storage area",
-            icon="🚪",
-        ),
-        Location(
-            name="Refrigerator",
-            description="Main refrigerator",
-            icon="❄️",
-        ),
-        Location(
-            name="Freezer",
-            description="Main freezer compartment",
-            icon="🧊",
-        ),
-        Location(
-            name="Kitchen Cabinet",
-            description="Kitchen cabinets and cupboards",
-            icon="🗄️",
-        ),
-        Location(
-            name="Spice Rack",
-            description="Dedicated spice storage",
-            icon="🌶️",
-        ),
-        Location(
-            name="Wine Rack",
-            description="Wine and beverage storage",
-            icon="🍷",
-        ),
-        Location(
-            name="Counter",
-            description="Kitchen counter surface",
-            icon="🔲",
-        ),
-        Location(
-            name="Other",
-            description="Other storage locations",
-            icon="📍",
-        ),
-    ]
-
-    session.add_all(locations)
-    await session.commit()
+# NOTE: Locations are household-scoped (locations.household_id is NOT NULL as of
+# migration 003) and are created per-household through the app, so there are no
+# global default locations to seed here. Only globally-shared data (categories)
+# is seeded.
 
 
 async def seed_all() -> None:
@@ -154,13 +110,6 @@ async def seed_all() -> None:
             else:
                 await seed_categories(session)
                 print("✓ Seeded categories")
-
-            result = await session.execute(select(Location))
-            if result.scalars().first():
-                print("Locations already exist. Skipping seed.")
-            else:
-                await seed_locations(session)
-                print("✓ Seeded locations")
 
         except Exception as e:
             await session.rollback()

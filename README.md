@@ -184,7 +184,7 @@ code .
 # VSCode will prompt to reopen in container
 ```
 
-For manual setup, see [DEVELOPMENT.md](docs/DEVELOPMENT.md).
+For full local development instructions (Docker and hybrid native setups), see the [Development Environment guide](https://docs.pantrie.org/development/dev-environment/).
 
 ## Inspiration
 
