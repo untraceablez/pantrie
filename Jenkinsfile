@@ -10,6 +10,12 @@
 //     https :443 to avoid TLS hostname-mismatch on the internal cert.
 //   - For the quality gate: a SonarQube webhook -> https://<jenkins>/sonarqube-webhook/
 //
+// The scan runs via `npx @sonar/scan` in the node:20 container rather than the
+// sonarsource/sonar-scanner-cli image: SonarQube's JS/TS analyzer needs a glibc
+// Node 20+ for its bridge to start, and the scanner-cli image is Alpine/musl
+// Node 18. @sonar/scan auto-provisions a JRE + scanner engine from the SonarQube
+// server (over :9000, allowed by the jenkins-egress NetworkPolicy).
+//
 // GitHub Actions remains the required PR gate; this adds SonarQube analysis.
 
 def podYaml = '''
@@ -23,10 +29,6 @@ spec:
       args: ["infinity"]
     - name: node
       image: node:20
-      command: ["sleep"]
-      args: ["infinity"]
-    - name: sonar
-      image: sonarsource/sonar-scanner-cli:5
       command: ["sleep"]
       args: ["infinity"]
     - name: postgres
@@ -99,11 +101,14 @@ PY
 
     stage('SonarQube analysis') {
       steps {
-        container('sonar') {
+        container('node') {
           withSonarQubeEnv('SonarQube') {
-            // sonar-scanner reads sonar-project.properties; withSonarQubeEnv
-            // injects SONAR_HOST_URL + SONAR_TOKEN from the server config.
-            sh 'sonar-scanner'
+            // @sonar/scan reads sonar-project.properties (repo root) and the
+            // SONARQUBE_SCANNER_PARAMS / SONAR_HOST_URL + SONAR_TOKEN that
+            // withSonarQubeEnv injects. Runs on glibc Node 20 so the JS/TS
+            // analyzer bridge starts; report-task.txt lands in .scannerwork
+            // for the Quality Gate stage.
+            sh 'npx --yes @sonar/scan'
           }
         }
       }
