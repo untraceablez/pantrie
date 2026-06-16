@@ -40,8 +40,9 @@ export default function MealieConnectionSettings({
   }
 
   useEffect(() => {
-    fetchConnection()
-  }, [householdId])
+    if (isAdmin) fetchConnection()
+    else setLoading(false)
+  }, [householdId, isAdmin])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
