@@ -127,10 +127,25 @@ export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: I
     onClick?.(item)
   }
 
+  // Keyboard activation so the card is operable without a mouse (a11y).
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') {
+      return
+    }
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    e.preventDefault()
+    onClick?.(item)
+  }
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow bg-white dark:bg-gray-800 cursor-pointer"
       onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
       {/* Item image or placeholder */}
       {item.image_url ? (

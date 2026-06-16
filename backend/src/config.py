@@ -22,10 +22,10 @@ class Settings(BaseSettings):
     ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
     DEBUG: bool = False
 
-    # Database
-    DATABASE_URL: PostgresDsn = Field(
-        default="postgresql+asyncpg://pantrie:pantrie@localhost:5432/pantrie"
-    )
+    # Database — required; supplied via env / .env (see .env.example). No default
+    # so credentials never live in source (was a hardcoded dev password). All real
+    # paths set it: docker/k8s env, the Jenkinsfile, and pytest-env for the suite.
+    DATABASE_URL: PostgresDsn = Field(...)
     DATABASE_POOL_SIZE: int = 5
     DATABASE_MAX_OVERFLOW: int = 10
     DATABASE_ECHO: bool = False

@@ -14,7 +14,29 @@ from src.schemas.household import HouseholdCreate
 from src.schemas.setup import SMTPConfig, ProxyConfig, OAuthConfig, NotificationConfig
 from src.services.auth_service import AuthService
 from src.services.household_service import HouseholdService
+import asyncio
 import os
+
+
+def _read_env_file(path: str) -> dict[str, str]:
+    """Parse a .env file into a dict (blocking; run via asyncio.to_thread)."""
+    env_vars: dict[str, str] = {}
+    if not os.path.exists(path):
+        return env_vars
+    with open(path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key] = value
+    return env_vars
+
+
+def _write_env_file(path: str, env_vars: dict[str, str]) -> None:
+    """Write a dict back to a .env file (blocking; run via asyncio.to_thread)."""
+    with open(path, 'w') as f:
+        for key, value in env_vars.items():
+            f.write(f'{key}={value}\n')
 
 
 class SetupService:
@@ -157,16 +179,9 @@ class SetupService:
         # Write OAuth credentials to .env file if provided
         if oauth_config:
             env_file_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
-            env_vars = {}
 
-            # Read existing .env file if it exists
-            if os.path.exists(env_file_path):
-                with open(env_file_path, 'r') as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith('#') and '=' in line:
-                            key, value = line.split('=', 1)
-                            env_vars[key] = value
+            # Read existing .env file if it exists (off the event loop)
+            env_vars = await asyncio.to_thread(_read_env_file, env_file_path)
 
             # Update OAuth credentials
             if oauth_config.google_client_id and oauth_config.google_client_secret:
@@ -182,10 +197,8 @@ class SetupService:
                 env_vars['OAUTH_AUTHENTIK_BASE_URL'] = oauth_config.authentik_base_url
                 env_vars['OAUTH_AUTHENTIK_SLUG'] = oauth_config.authentik_slug
 
-            # Write back to .env file
-            with open(env_file_path, 'w') as f:
-                for key, value in env_vars.items():
-                    f.write(f'{key}={value}\n')
+            # Write back to .env file (off the event loop)
+            await asyncio.to_thread(_write_env_file, env_file_path, env_vars)
 
         return {
             "user": {
