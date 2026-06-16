@@ -50,8 +50,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
                         break
         except Exception as e:
             logger.warning(f"Failed to load proxy settings: {e}")
-        finally:
-            break
+        # Only the first DB session is needed. `break` lives here (not in `finally`)
+        # so an uncaught exception — notably asyncio.CancelledError on shutdown,
+        # a BaseException not caught above — propagates instead of being swallowed.
+        break
 
     yield
     logger.info("Application shutting down")
