@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach } from 'vitest'
+
+// The async findBy*/waitFor default (1000ms) is too tight when the whole suite
+// runs with file parallelism on a busy machine — data-fetching components that
+// load → click → re-render can exceed it under CPU contention, causing flaky
+// timeouts. Raise it so async assertions stay reliable as the suite grows.
+configure({ asyncUtilTimeout: 5000 })
 
 // Cleanup after each test
 afterEach(() => {
