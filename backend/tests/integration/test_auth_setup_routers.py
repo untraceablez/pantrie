@@ -137,6 +137,23 @@ async def test_barcode_lookup_not_found(async_client: AsyncClient, monkeypatch):
     assert resp.status_code == 404
 
 
+async def test_barcode_search_returns_suggestions(async_client: AsyncClient, monkeypatch):
+    import httpx
+    payload = {"products": [{"code": "555", "product_name": "Beans", "brands": "Acme"}]}
+    _patch_barcode(monkeypatch, lambda r: httpx.Response(200, json=payload))
+    resp = await async_client.get(f"{API}/barcode/search", params={"q": "beans"})
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["results"][0]["barcode"] == "555"
+    assert body["search_url"]
+
+
+async def test_barcode_search_requires_a_query(async_client: AsyncClient):
+    # Too-short query fails validation (min_length=2).
+    resp = await async_client.get(f"{API}/barcode/search", params={"q": "a"})
+    assert resp.status_code == 422
+
+
 # =========================================================================== #
 # setup router (empty DB -> setup not complete)
 # =========================================================================== #
