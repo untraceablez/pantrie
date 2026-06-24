@@ -111,3 +111,76 @@ def test_parse_product_data_prefers_serving_over_100g():
         {"product_name": "X", "nutriments": {"fat_serving": 5, "fat_100g": 9}}
     )
     assert parsed["nutrition_facts"]["total_fat"] == 5
+
+
+# --------------------------------------------------------------------------- #
+# search_products
+# --------------------------------------------------------------------------- #
+async def test_search_products_returns_suggestions_and_url(monkeypatch):
+    payload = {
+        "products": [
+            {"code": "111", "product_name": "Nutella", "brands": "Ferrero", "image_url": "http://i/n.png"},
+            {"code": "222", "product_name": "Nutella B-Ready", "brands": "Ferrero"},
+            {"code": "333", "product_name": "Off-list"},  # within limit
+        ]
+    }
+    _patch_client(monkeypatch, lambda r: httpx.Response(200, json=payload))
+    result = await BarcodeService().search_products("nutella", limit=3)
+
+    assert [s["barcode"] for s in result["results"]] == ["111", "222", "333"]
+    assert result["results"][0] == {
+        "barcode": "111",
+        "name": "Nutella",
+        "brand": "Ferrero",
+        "image_url": "http://i/n.png",
+    }
+    assert result["results"][1]["image_url"] is None
+    assert "search_terms=nutella" in result["search_url"]
+
+
+async def test_search_products_skips_entries_without_code_or_name(monkeypatch):
+    payload = {
+        "products": [
+            {"product_name": "No code"},  # dropped (no code)
+            {"code": "777"},  # dropped (no name)
+            {"code": "999", "product_name": "Keeper"},
+        ]
+    }
+    _patch_client(monkeypatch, lambda r: httpx.Response(200, json=payload))
+    result = await BarcodeService().search_products("x")
+    assert [s["barcode"] for s in result["results"]] == ["999"]
+
+
+async def test_search_products_empty_results(monkeypatch):
+    _patch_client(monkeypatch, lambda r: httpx.Response(200, json={"products": []}))
+    assert (await BarcodeService().search_products("nothing"))["results"] == []
+
+
+async def test_search_products_handles_error_response(monkeypatch):
+    # _patch_client must be called once per test (it captures httpx.AsyncClient).
+    _patch_client(monkeypatch, lambda r: httpx.Response(500))
+    result = await BarcodeService().search_products("boom")
+    assert result["results"] == []  # error logged, empty results, URL still present
+    assert result["search_url"]
+
+
+async def test_search_products_handles_timeout(monkeypatch):
+    def handler(request):
+        raise httpx.TimeoutException("slow")
+
+    _patch_client(monkeypatch, handler)
+    assert (await BarcodeService().search_products("slow"))["results"] == []
+
+
+async def test_search_products_handles_unexpected_error(monkeypatch):
+    def handler(request):
+        raise httpx.ConnectError("dropped")
+
+    _patch_client(monkeypatch, handler)
+    assert (await BarcodeService().search_products("oops"))["results"] == []
+
+
+async def test_search_products_url_encodes_the_query(monkeypatch):
+    _patch_client(monkeypatch, lambda r: httpx.Response(200, json={"products": []}))
+    result = await BarcodeService().search_products("peanut butter")
+    assert "peanut%20butter" in result["search_url"]
