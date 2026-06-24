@@ -8,7 +8,7 @@ import * as locationSvc from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
 
 vi.mock('@/services/inventory', () => ({ createItem: vi.fn() }))
-vi.mock('@/services/barcode', () => ({ lookupBarcode: vi.fn() }))
+vi.mock('@/services/barcode', () => ({ lookupBarcode: vi.fn(), searchProducts: vi.fn() }))
 vi.mock('@/services/household', () => ({ listHouseholds: vi.fn(), createHousehold: vi.fn() }))
 vi.mock('@/services/location', () => ({ listHouseholdLocations: vi.fn() }))
 vi.mock('@/store/authStore', () => ({ useAuthStore: vi.fn() }))
@@ -25,6 +25,7 @@ vi.mock('@/components/barcode/BarcodeScanner', () => ({
 
 const mockCreateItem = vi.mocked(inventorySvc.createItem)
 const mockLookup = vi.mocked(barcodeSvc.lookupBarcode)
+const mockSearch = vi.mocked(barcodeSvc.searchProducts)
 const mockListHouseholds = vi.mocked(householdSvc.listHouseholds)
 const mockCreateHousehold = vi.mocked(householdSvc.createHousehold)
 const mockListLocations = vi.mocked(locationSvc.listHouseholdLocations)
@@ -70,6 +71,7 @@ describe('AddItemForm', () => {
     mockListHouseholds.mockResolvedValue([household()])
     mockListLocations.mockResolvedValue([])
     mockCreateItem.mockResolvedValue({} as inventorySvc.InventoryItem)
+    mockSearch.mockResolvedValue({ results: [], search_url: 'http://off/search' })
   })
 
   it('loads households and defaults to the first', async () => {
@@ -236,6 +238,64 @@ describe('AddItemForm', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Camera' }))
     fireEvent.click(screen.getByRole('button', { name: 'fake-close' }))
     expect(screen.queryByTestId('scanner')).not.toBeInTheDocument()
+  })
+
+  it('searches by product name and fills the form from a chosen suggestion', async () => {
+    mockSearch.mockResolvedValue({
+      results: [
+        { barcode: '111', name: 'Organic Peanut Butter', brand: 'Acme', image_url: 'http://x/p.png' },
+        { barcode: '222', name: 'Peanut Butter Lite', brand: null, image_url: null },
+      ],
+      search_url: 'http://off/search?q=peanut',
+    })
+    mockLookup.mockResolvedValue(product({ name: 'Organic Peanut Butter' }))
+    renderForm()
+
+    const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
+    fireEvent.change(input, { target: { value: 'peanut butter' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledWith('peanut butter'))
+    const suggestion = await screen.findByText('Organic Peanut Butter')
+    fireEvent.click(suggestion)
+
+    // Choosing a suggestion looks the product up by its barcode and fills the form.
+    await waitFor(() => expect(mockLookup).toHaveBeenCalledWith('111'))
+    expect((screen.getByLabelText('Item Name *') as HTMLInputElement).value).toBe('Organic Peanut Butter')
+  })
+
+  it('searches via the Enter key', async () => {
+    mockSearch.mockResolvedValue({ results: [], search_url: 'http://off/s' })
+    renderForm()
+    const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
+    fireEvent.change(input, { target: { value: 'beans' } })
+    fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+    await waitFor(() => expect(mockSearch).toHaveBeenCalledWith('beans'))
+  })
+
+  it('shows the no-matches state with a link to full results', async () => {
+    mockSearch.mockResolvedValue({ results: [], search_url: 'http://off/search?q=zzz' })
+    renderForm()
+    const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
+    fireEvent.change(input, { target: { value: 'zzz' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    expect(await screen.findByText(/No quick matches/)).toBeInTheDocument()
+    const link = screen.getByRole('link', { name: /See more results on Open Food Facts/ })
+    expect(link).toHaveAttribute('href', 'http://off/search?q=zzz')
+  })
+
+  it('disables Search for a too-short query and surfaces a search error', async () => {
+    renderForm()
+    const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
+    const button = screen.getByRole('button', { name: 'Search' }) as HTMLButtonElement
+    fireEvent.change(input, { target: { value: 'a' } })
+    expect(button.disabled).toBe(true)
+
+    mockSearch.mockRejectedValue(new Error('network'))
+    fireEvent.change(input, { target: { value: 'apples' } })
+    fireEvent.click(button)
+    expect(await screen.findByText('Failed to search products. Please try again.')).toBeInTheDocument()
   })
 
   it('validates image file type and size', async () => {

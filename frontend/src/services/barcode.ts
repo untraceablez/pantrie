@@ -22,3 +22,25 @@ export const lookupBarcode = async (barcode: string): Promise<ProductInfo> => {
   const response = await apiClient.get<ProductInfo>(`/barcode/${barcode}`)
   return response.data
 }
+
+export interface ProductSuggestion {
+  barcode: string
+  name: string
+  brand: string | null
+  image_url: string | null
+}
+
+export interface ProductSearchResult {
+  results: ProductSuggestion[]
+  search_url: string
+}
+
+export const searchProducts = async (
+  query: string,
+  limit = 3
+): Promise<ProductSearchResult> => {
+  const response = await apiClient.get<ProductSearchResult>('/barcode/search', {
+    params: { q: query, limit },
+  })
+  return response.data
+}
