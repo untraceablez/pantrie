@@ -1,6 +1,7 @@
 """Service for barcode lookup and product information retrieval."""
 import httpx
 from typing import Any
+from urllib.parse import quote
 
 from src.config import get_settings
 from src.core.logging import setup_logging
@@ -15,6 +16,61 @@ class BarcodeService:
     def __init__(self):
         """Initialize the barcode service."""
         self.openfoodfacts_url = settings.OPEN_FOOD_FACTS_API_URL
+
+    async def search_products(self, query: str, limit: int = 3) -> dict[str, Any]:
+        """Search Open Food Facts by product name for a few suggestions.
+
+        Returns lightweight ``{barcode, name, brand, image_url}`` results (the
+        full fields are populated by ``lookup_barcode`` when a suggestion is
+        chosen) plus a ``search_url`` linking to the full results on the web.
+        """
+        results: list[dict[str, Any]] = []
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.openfoodfacts_url}/search",
+                    params={
+                        "search_terms": query,
+                        "fields": "code,product_name,brands,image_url",
+                        "page_size": limit,
+                    },
+                    timeout=10.0,
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    for product in (data.get("products") or [])[:limit]:
+                        code = product.get("code")
+                        name = product.get("product_name")
+                        # A suggestion is only useful if it has a barcode to look
+                        # up and a display name.
+                        if not code or not name:
+                            continue
+                        results.append(
+                            {
+                                "barcode": str(code),
+                                "name": name,
+                                "brand": product.get("brands") or None,
+                                "image_url": product.get("image_url") or None,
+                            }
+                        )
+                else:
+                    logger.warning(
+                        "Open Food Facts search error",
+                        query=query,
+                        status_code=response.status_code,
+                    )
+        except httpx.TimeoutException:
+            logger.error("Open Food Facts search timeout", query=query)
+        except Exception as e:
+            logger.error("Error searching products", query=query, error=str(e))
+
+        return {
+            "results": results,
+            "search_url": (
+                "https://world.openfoodfacts.org/cgi/search.pl?"
+                f"search_terms={quote(query)}&search_simple=1&action=process"
+            ),
+        }
 
     async def lookup_barcode(self, barcode: str) -> dict[str, Any] | None:
         """
