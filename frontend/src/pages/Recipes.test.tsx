@@ -8,11 +8,26 @@ import { useThemeStore } from '@/store/themeStore'
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }))
 vi.mock('@/services/household', () => ({ listHouseholds: vi.fn() }))
-vi.mock('@/services/mealie', () => ({ getMealieRecipes: vi.fn(), pushToShoppingList: vi.fn() }))
+vi.mock('@/services/mealie', () => ({ getMealieRecipes: vi.fn() }))
+
+// Stub the push modal; the page just opens it and reacts to onPushed/onClose.
+vi.mock('@/components/recipes/ShoppingListPushModal', () => ({
+  default: ({ recipe, onClose, onPushed }: any) => (
+    <div data-testid="push-modal">
+      <span>modal for {recipe.name}</span>
+      <button onClick={() => onPushed(recipe, { added: 2, requested: 2, updated: 1, items: [] })}>
+        do-push
+      </button>
+      <button onClick={() => onPushed(recipe, { added: 2, requested: 2, updated: 0, items: [] })}>
+        do-push-plain
+      </button>
+      <button onClick={onClose}>close-modal</button>
+    </div>
+  ),
+}))
 
 const mockListHouseholds = vi.mocked(householdSvc.listHouseholds)
 const mockGetRecipes = vi.mocked(mealieSvc.getMealieRecipes)
-const mockPush = vi.mocked(mealieSvc.pushToShoppingList)
 
 const household = (over: Partial<householdSvc.HouseholdWithRole> = {}): householdSvc.HouseholdWithRole =>
   ({ id: 1, name: 'Home', user_role: 'admin', ...over }) as householdSvc.HouseholdWithRole
@@ -91,25 +106,42 @@ describe('Recipes page', () => {
     await waitFor(() => expect(mockGetRecipes).toHaveBeenCalledWith(2))
   })
 
-  it('pushes missing ingredients to the shopping list and shows a notice', async () => {
+  it('opens the push modal and shows a notice (with updated count) on success', async () => {
     mockGetRecipes.mockResolvedValue({
       recipes: [recipe({ name: 'Omelette', makeable: false, missing: ['eggs'] })],
     })
-    mockPush.mockResolvedValue({ added: 1, requested: 1 } as Awaited<ReturnType<typeof mealieSvc.pushToShoppingList>>)
     render(<Recipes />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add missing to Mealie list' }))
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith(1, ['eggs']))
-    expect(await screen.findByText('Omelette: added 1/1 to Mealie shopping list')).toBeInTheDocument()
+    expect(await screen.findByTestId('push-modal')).toHaveTextContent('modal for Omelette')
+
+    fireEvent.click(screen.getByRole('button', { name: 'do-push' }))
+    expect(
+      await screen.findByText('Omelette: added 2/2 to Mealie shopping list (1 updated)')
+    ).toBeInTheDocument()
+    // The modal closes after a successful push.
+    expect(screen.queryByTestId('push-modal')).not.toBeInTheDocument()
   })
 
-  it('shows a failure notice when the push fails', async () => {
+  it('omits the updated count when nothing was incremented', async () => {
     mockGetRecipes.mockResolvedValue({
       recipes: [recipe({ name: 'Omelette', makeable: false, missing: ['eggs'] })],
     })
-    mockPush.mockRejectedValue(new Error('nope'))
     render(<Recipes />)
     fireEvent.click(await screen.findByRole('button', { name: 'Add missing to Mealie list' }))
-    expect(await screen.findByText('Omelette: failed to update Mealie shopping list')).toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'do-push-plain' }))
+    expect(
+      await screen.findByText('Omelette: added 2/2 to Mealie shopping list')
+    ).toBeInTheDocument()
+  })
+
+  it('closes the push modal without pushing', async () => {
+    mockGetRecipes.mockResolvedValue({
+      recipes: [recipe({ name: 'Omelette', makeable: false, missing: ['eggs'] })],
+    })
+    render(<Recipes />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add missing to Mealie list' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'close-modal' }))
+    expect(screen.queryByTestId('push-modal')).not.toBeInTheDocument()
   })
 
   it('renders nothing extra when the user has no households', async () => {
