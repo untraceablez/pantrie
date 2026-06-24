@@ -127,10 +127,24 @@ export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: I
     onClick?.(item)
   }
 
+  const handleCardKeyDown = (e: React.KeyboardEvent) => {
+    // Activate on Enter/Space like a button, but let nested buttons handle their own keys
+    if (e.key !== 'Enter' && e.key !== ' ') {
+      return
+    }
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    e.preventDefault()
+    onClick?.(item)
+  }
+
   return (
     <div
-      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow bg-white dark:bg-gray-800 cursor-pointer"
+      tabIndex={0}
+      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow bg-white dark:bg-gray-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
       onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
       {/* Item image or placeholder */}
       {item.image_url ? (
