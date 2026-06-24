@@ -5,6 +5,7 @@ from src.models.category import Category
 from src.models.household import Household
 from src.models.household_allergen import HouseholdAllergen
 from src.models.household_membership import HouseholdMembership
+from src.models.household_staple import HouseholdStaple
 from src.models.inventory_item import InventoryItem
 from src.models.location import Location
 from src.models.mealie_connection import MealieConnection
@@ -19,6 +20,7 @@ __all__ = [
     "Household",
     "HouseholdAllergen",
     "HouseholdMembership",
+    "HouseholdStaple",
     "InventoryItem",
     "Location",
     "MealieConnection",

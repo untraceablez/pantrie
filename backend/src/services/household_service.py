@@ -36,6 +36,11 @@ class HouseholdService:
         )
         self.db.add(membership)
 
+        # Seed default assumed staples (e.g. water) for the new household.
+        from src.services.staple_service import StapleService
+
+        await StapleService(self.db).seed_default_staples(household.id)
+
         await self.db.commit()
         await self.db.refresh(household)
 
