@@ -1,12 +1,17 @@
 # Mealie Integration
 
-Pantrie integrates with [Mealie](https://docs.mealie.io) so a recipe app can see
-what's in your pantry. **Phase 1 (Mealie → Pantrie)** is available now: an
-external app authenticates with API client credentials scoped to one household
-and queries (or updates) inventory.
+Pantrie integrates with [Mealie](https://docs.mealie.io) in both directions:
 
-> **Phase 2 (Pantrie → Mealie)** — pulling recipes and computing what you can
-> make from current inventory — is in development.
+- **Phase 1 (Mealie → Pantrie)** — an external app authenticates with API client
+  credentials scoped to one household and queries (or updates) inventory. Covered
+  in this page.
+- **Phase 2 (Pantrie → Mealie)** — Pantrie pulls your Mealie recipes, computes
+  what you can make from your current inventory, and pushes missing ingredients
+  to a Mealie shopping list. This is now shipped and used from the in-app
+  **Recipes** page; see the [Recipes & Mealie](../user-guide/recipes.md) user
+  guide. It uses a Mealie connection configured under **Settings → Household
+  Settings → Mealie Connection** (a Mealie base URL + API key), not the API
+  clients described below.
 
 ## Concepts
 
