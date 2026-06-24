@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createItem } from '@/services/inventory'
-import { lookupBarcode } from '@/services/barcode'
+import { lookupBarcode, searchProducts, type ProductSuggestion } from '@/services/barcode'
 import { listHouseholds, createHousehold, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
@@ -44,6 +44,11 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
   const [showScanner, setShowScanner] = useState(false)
   const [lookingUp, setLookingUp] = useState(false)
   const [productFound, setProductFound] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([])
+  const [searchUrl, setSearchUrl] = useState('')
+  const [searched, setSearched] = useState(false)
   const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
   const [loadingHouseholds, setLoadingHouseholds] = useState(true)
   const [creatingHousehold, setCreatingHousehold] = useState(false)
@@ -233,6 +238,31 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
     if (barcode.trim()) {
       await lookupBarcodeData(barcode.trim())
     }
+  }
+
+  const handleProductSearch = async () => {
+    const query = searchQuery.trim()
+    if (query.length < 2) return
+    try {
+      setSearching(true)
+      setError('')
+      const data = await searchProducts(query)
+      setSuggestions(data.results)
+      setSearchUrl(data.search_url)
+      setSearched(true)
+    } catch (err) {
+      console.error('Error searching products:', err)
+      setError('Failed to search products. Please try again.')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  const handleSelectSuggestion = async (suggestion: ProductSuggestion) => {
+    setBarcode(suggestion.barcode)
+    setSuggestions([])
+    setSearched(false)
+    await lookupBarcodeData(suggestion.barcode)
   }
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -470,6 +500,87 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
           <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
             💡 Tip: USB/Bluetooth scanners will automatically type the barcode into the field
           </p>
+        </div>
+        )}
+
+        {/* Product Name Search Section */}
+        {households.length > 0 && (
+        <div className="bg-purple-50 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-medium text-purple-900 dark:text-purple-200">
+              Search by Product Name (Optional)
+            </h3>
+            <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+              No barcode? Search Open Food Facts and pick a result to fill in the details
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="e.g. organic peanut butter"
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleProductSearch()
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleProductSearch}
+              disabled={searchQuery.trim().length < 2 || searching}
+              className="px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded-md hover:bg-purple-700 dark:hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {searching ? 'Searching…' : 'Search'}
+            </button>
+          </div>
+
+          {/* Suggestions */}
+          {suggestions.length > 0 && (
+            <ul className="mt-3 space-y-2">
+              {suggestions.map((s) => (
+                <li key={s.barcode}>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectSuggestion(s)}
+                    disabled={lookingUp}
+                    className="w-full flex items-center gap-3 p-2 text-left bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-purple-50 dark:hover:bg-gray-600 disabled:opacity-50"
+                  >
+                    {s.image_url ? (
+                      <img src={s.image_url} alt={s.name} className="w-10 h-10 object-cover rounded" />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-gray-100 dark:bg-gray-600 flex-shrink-0" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">{s.name}</span>
+                      {s.brand && (
+                        <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{s.brand}</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* Empty state + link to full results */}
+          {searched && (
+            <p className="mt-3 text-xs text-purple-700 dark:text-purple-300">
+              {suggestions.length === 0 && 'No quick matches. '}
+              <a
+                href={searchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline hover:no-underline"
+              >
+                See more results on Open Food Facts →
+              </a>
+            </p>
+          )}
         </div>
         )}
 

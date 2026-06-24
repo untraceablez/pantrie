@@ -173,6 +173,14 @@ describe('barcode service', () => {
     expect(await mod.lookupBarcode('555')).toEqual({ name: 'Beans' })
     expect(mockApi.get).toHaveBeenCalledWith('/barcode/555')
   })
+
+  it('searches products by name', async () => {
+    const mod = await import('./barcode')
+    mockApi.get.mockResolvedValue(data({ results: [{ barcode: '1', name: 'X' }], search_url: 'u' }))
+    const res = await mod.searchProducts('peanut')
+    expect(res.results[0].barcode).toBe('1')
+    expect(mockApi.get).toHaveBeenCalledWith('/barcode/search', { params: { q: 'peanut', limit: 3 } })
+  })
 })
 
 // --------------------------------------------------------------------------- //
