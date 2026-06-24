@@ -80,8 +80,9 @@ nav:
       - Households: user-guide/households.md
       - Inventory Management: user-guide/inventory.md
       - Locations: user-guide/locations.md
-      - Barcode Scanning: user-guide/barcode-scanning.md
+      - Barcode Scanning & Product Search: user-guide/barcode-scanning.md
       - Custom Allergens: user-guide/allergens.md
+      - Recipes & Mealie: user-guide/recipes.md
   - API Documentation:
       - Overview: api/overview.md
       - Authentication: api/authentication.md

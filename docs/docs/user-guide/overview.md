@@ -11,7 +11,8 @@ Pantrie is a household inventory management system that helps you:
 - Reduce food waste
 - Manage multiple households
 - Track custom allergens
-- Scan barcodes for quick entry
+- Add items fast by barcode scan or Open Food Facts product search
+- See which recipes you can make from your inventory (via Mealie)
 
 ## Core Concepts
 
@@ -51,6 +52,17 @@ Define allergens specific to your household:
 - Automatically checked against item ingredients
 - Visual warnings on items containing allergens
 - Works with Open Food Facts allergen data
+
+### Recipes (Mealie)
+
+Connect a [Mealie](https://docs.mealie.io) instance to see which recipes you can
+make from your inventory, and push missing ingredients to a Mealie shopping list:
+
+- Per-recipe "makeability" computed from what's in stock
+- Forgiving ingredient matching (e.g. "Corn Starch" ≈ "cornstarch")
+- Per-household **staples** (e.g. water) counted as always in-stock
+
+See [Recipes & Mealie](recipes.md).
 
 ## User Roles
 
@@ -97,7 +109,6 @@ View and manage all items:
 - Search by name
 - Sort by various fields
 - Add new items
-- Bulk actions
 
 ### Settings
 
@@ -106,6 +117,9 @@ Configure your household:
 - Household information
 - Locations management
 - Custom allergens
+- Pantry staples (assumed-on-hand ingredients)
+- Mealie connection (for recipes)
+- API clients (for external apps)
 - Member management
 - Personal settings
 
@@ -113,10 +127,11 @@ Configure your household:
 
 ### Adding Items
 
-Two methods:
+Three methods:
 
-1. **Barcode Scan**: Fast, auto-fills data
-2. **Manual Entry**: Full control over details
+1. **Barcode Scan**: Fast, auto-fills data from Open Food Facts
+2. **Product Name Search**: Search Open Food Facts by name and pick a suggestion
+3. **Manual Entry**: Full control over details
 
 ### Finding Items
 
@@ -166,7 +181,6 @@ Pantrie is mobile-responsive:
 
 - Data is stored securely
 - Only household members can see your inventory
-- You can export your data at any time
 - Deletion removes all your data
 
 ## Detailed Guides
@@ -174,8 +188,9 @@ Pantrie is mobile-responsive:
 - [Managing Households](households.md)
 - [Inventory Management](inventory.md)
 - [Locations](locations.md)
-- [Barcode Scanning](barcode-scanning.md)
+- [Barcode Scanning & Product Search](barcode-scanning.md)
 - [Custom Allergens](allergens.md)
+- [Recipes & Mealie](recipes.md)
 
 ## Getting Help
 

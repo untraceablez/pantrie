@@ -137,23 +137,25 @@ Full installation instructions available in the [documentation](https://pantrie.
 
 ## Roadmap
 
-Pantrie is under active development. The core inventory app is functional today
-— multi-user households, role-based access, inventory CRUD with search/filter,
-barcode lookup, OAuth, email confirmation, and notifications/webhooks are all
-implemented.
+Pantrie is under active development. The core inventory app — plus Mealie recipe
+integration — is functional today.
 
 **Shipped:**
 
 - [x] Multi-user households with role-based access (admin/editor/viewer)
 - [x] Inventory tracking with search, filter, and sort
 - [x] Barcode lookup (Open Food Facts)
+- [x] Product name search (Open Food Facts search on the Add Item form)
+- [x] Custom allergens with ingredient warnings
+- [x] Mealie recipe integration — browse recipes and see what you can make from your inventory
+- [x] Household staples (assumed-on-hand ingredients like water, counted as in-stock)
+- [x] Push missing ingredients to a Mealie shopping list (pick or create a list; de-dupes by quantity)
 - [x] Notifications & webhooks for inventory events
 - [x] OAuth (Google, Authentik) and email confirmation
+- [x] API clients for external apps (e.g. Mealie) to read/update inventory
 
 **Planned:**
 
-- [ ] Recipe integration (sync with Mealie!) — *next up*
-- [ ] Test-coverage hardening (pytest + Vitest/Playwright)
 - [ ] Import/export functionality
 - [ ] Photo/image upload for items
 - [ ] Multi-language support
