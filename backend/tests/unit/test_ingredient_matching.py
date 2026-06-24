@@ -56,6 +56,55 @@ async def test_fuzzy_substring_fallback(db_session: Any, admin_household: dict[s
 
 
 @pytest.mark.asyncio
+async def test_spacing_variant_matches(db_session: Any, admin_household: dict[str, Any]) -> None:
+    """`Corn Starch` in inventory satisfies a `cornstarch` ingredient."""
+    hh, user = admin_household["household"], admin_household["user"]
+    await _add_item(db_session, hh, user, "Corn Starch", "1.00", "kg")
+
+    svc = MealieQueryService(db_session)
+    [res] = await svc.check_availability(hh.id, [IngredientQuery(name="cornstarch")])
+    assert res.in_stock is True
+    assert res.matched_name == "Corn Starch"
+
+
+@pytest.mark.asyncio
+async def test_plural_variant_matches(db_session: Any, admin_household: dict[str, Any]) -> None:
+    hh, user = admin_household["household"], admin_household["user"]
+    await _add_item(db_session, hh, user, "Tomato", "3.00", "count")
+
+    svc = MealieQueryService(db_session)
+    [res] = await svc.check_availability(hh.id, [IngredientQuery(name="Tomatoes")])
+    assert res.in_stock is True
+    assert res.matched_name == "Tomato"
+
+
+@pytest.mark.asyncio
+async def test_near_miss_does_not_match(db_session: Any, admin_household: dict[str, Any]) -> None:
+    """`corn` must NOT be satisfied by `Cornstarch` (documented false-positive)."""
+    hh, user = admin_household["household"], admin_household["user"]
+    await _add_item(db_session, hh, user, "Cornstarch", "1.00", "kg")
+
+    svc = MealieQueryService(db_session)
+    [res] = await svc.check_availability(hh.id, [IngredientQuery(name="corn")])
+    assert res.in_stock is False
+
+
+@pytest.mark.asyncio
+async def test_exact_tier_is_not_ambiguous_with_a_specific_variant(
+    db_session: Any, admin_household: dict[str, Any]
+) -> None:
+    """An exact canonical hit wins outright and isn't flagged ambiguous."""
+    hh, user = admin_household["household"], admin_household["user"]
+    await _add_item(db_session, hh, user, "Flour", "2.00", "kg")
+    await _add_item(db_session, hh, user, "Whole Wheat Flour", "1.00", "kg")
+
+    svc = MealieQueryService(db_session)
+    [res] = await svc.check_availability(hh.id, [IngredientQuery(name="flour")])
+    assert res.matched_name == "Flour"
+    assert res.ambiguous is False
+
+
+@pytest.mark.asyncio
 async def test_sufficiency_same_unit(db_session: Any, admin_household: dict[str, Any]) -> None:
     hh, user = admin_household["household"], admin_household["user"]
     await _add_item(db_session, hh, user, "Sugar", "5.00", "kg")

@@ -1,7 +1,7 @@
 """Inventory queries for external clients: availability and decrement (US2/US3)."""
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import NotFoundError
@@ -13,6 +13,7 @@ from src.schemas.mealie import (
     IngredientQuery,
     RecipeMakeability,
 )
+from src.services.ingredient_matching import find_matches
 
 logger = setup_logging()
 
@@ -20,36 +21,21 @@ logger = setup_logging()
 class MealieQueryService:
     """Match ingredient names to inventory and report/adjust availability.
 
-    Matching is name-based within a household: case-insensitive exact match
-    first, then a substring (ILIKE) fallback. Sufficiency is only computed when
-    the requested unit matches the stored unit (no unit conversion in the MVP).
+    Matching is name-based within a household via the shared, normalised
+    matcher (see :mod:`src.services.ingredient_matching`): canonical equality,
+    then token-subset, then a high-threshold ratio — so spacing/plural/case
+    variants line up. Sufficiency is only computed when the requested unit
+    matches the stored unit (no unit conversion in the MVP).
     """
 
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def _find_matches(self, household_id: int, name: str) -> list[InventoryItem]:
-        normalized = name.strip().lower()
-
-        # Exact (case-insensitive) match first.
-        exact = await self.db.execute(
-            select(InventoryItem).where(
-                InventoryItem.household_id == household_id,
-                func.lower(InventoryItem.name) == normalized,
-            )
+    async def _load_items(self, household_id: int) -> list[InventoryItem]:
+        result = await self.db.execute(
+            select(InventoryItem).where(InventoryItem.household_id == household_id)
         )
-        matches = list(exact.scalars().all())
-        if matches:
-            return matches
-
-        # Substring fallback.
-        fuzzy = await self.db.execute(
-            select(InventoryItem).where(
-                InventoryItem.household_id == household_id,
-                InventoryItem.name.ilike(f"%{name.strip()}%"),
-            )
-        )
-        return list(fuzzy.scalars().all())
+        return list(result.scalars().all())
 
     @staticmethod
     def _build_result(query: IngredientQuery, matches: list[InventoryItem]) -> AvailabilityResult:
@@ -77,9 +63,13 @@ class MealieQueryService:
     async def check_availability(
         self, household_id: int, queries: list[IngredientQuery]
     ) -> list[AvailabilityResult]:
+        # Load the household's items once and match each query in memory so the
+        # normalised/fuzzy matcher can run (it can't be expressed as a single
+        # SQL predicate).
+        items = await self._load_items(household_id)
         results: list[AvailabilityResult] = []
         for query in queries:
-            matches = await self._find_matches(household_id, query.name)
+            matches = find_matches(query.name, items, key=lambda i: i.name)
             results.append(self._build_result(query, matches))
         logger.info(
             "Client availability check",
