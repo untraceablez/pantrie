@@ -178,6 +178,80 @@ async def test_repushing_same_ingredient_in_one_batch_merges() -> None:
 
 
 @pytest.mark.asyncio
+async def test_pushes_to_an_explicit_target_list_without_listing() -> None:
+    calls: list[httpx.Request] = []
+    client = _client_for(_shopping_handler([], calls=calls))
+    svc = MealieClientService("http://mealie", "key", client=client)
+
+    [res] = await svc.add_to_shopping_list(["Milk"], list_id="list-9")
+    await client.aclose()
+
+    assert res["added"] is True
+    # The lists endpoint is not consulted when a target is given.
+    assert not any(r.url.path == "/api/households/shopping/lists" for r in calls)
+    # Existing items are fetched for the chosen list.
+    items_get = next(r for r in calls if r.url.path == "/api/households/shopping/items")
+    assert "list-9" in items_get.url.query.decode()
+
+
+@pytest.mark.asyncio
+async def test_list_shopping_lists() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200, json={"items": [{"id": 1, "name": "Weekly"}, {"id": 2, "name": None}]}
+        )
+
+    client = _client_for(handler)
+    svc = MealieClientService("http://mealie", "key", client=client)
+    lists = await svc.list_shopping_lists()
+    await client.aclose()
+    assert lists == [{"id": "1", "name": "Weekly"}, {"id": "2", "name": "2"}]
+
+
+@pytest.mark.asyncio
+async def test_create_shopping_list() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "POST"
+        return httpx.Response(201, json={"id": "new-1", "name": json.loads(request.content)["name"]})
+
+    client = _client_for(handler)
+    svc = MealieClientService("http://mealie", "key", client=client)
+    created = await svc.create_shopping_list("Chana Masala - 23-06-26")
+    await client.aclose()
+    assert created == {"id": "new-1", "name": "Chana Masala - 23-06-26"}
+
+
+@pytest.mark.asyncio
+async def test_create_shopping_list_error_is_actionable() -> None:
+    client = _client_for(lambda r: httpx.Response(500))
+    svc = MealieClientService("http://mealie", "key", client=client)
+    with pytest.raises(ExternalServiceError, match="creating shopping list"):
+        await svc.create_shopping_list("X")
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_create_shopping_list_transport_error_is_actionable() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("dropped")
+
+    client = _client_for(handler)
+    svc = MealieClientService("http://mealie", "key", client=client)
+    with pytest.raises(ExternalServiceError, match="Could not reach"):
+        await svc.create_shopping_list("X")
+    await client.aclose()
+
+
+@pytest.mark.asyncio
+async def test_create_shopping_list_non_json_is_actionable() -> None:
+    client = _client_for(lambda r: httpx.Response(201, content=b"not json"))
+    svc = MealieClientService("http://mealie", "key", client=client)
+    with pytest.raises(ExternalServiceError, match="non-JSON"):
+        await svc.create_shopping_list("X")
+    await client.aclose()
+
+
+@pytest.mark.asyncio
 async def test_add_to_shopping_list_no_list_raises() -> None:
     client = _client_for(lambda request: httpx.Response(200, json={"items": []}))
     svc = MealieClientService("http://mealie", "key", client=client)
@@ -258,6 +332,35 @@ async def test_fetch_recipes_builds_own_client_and_closes_it(monkeypatch) -> Non
     _patch_own_client(monkeypatch, lambda request: httpx.Response(200, json={"items": []}))
     svc = MealieClientService("http://mealie", "key")  # no client injected
     assert await svc.fetch_recipes_with_ingredients() == []
+
+
+@pytest.mark.asyncio
+async def test_new_item_with_non_json_create_response_still_added() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/households/shopping/lists":
+            return httpx.Response(200, json={"items": [{"id": "list-1"}]})
+        if request.method == "GET":
+            return httpx.Response(200, json={"items": []})
+        return httpx.Response(201, content=b"not json")  # created, but no JSON body
+
+    client = _client_for(handler)
+    svc = MealieClientService("http://mealie", "key", client=client)
+    [res] = await svc.add_to_shopping_list(["Milk"])
+    await client.aclose()
+    assert res["added"] is True and res["updated"] is False
+
+
+@pytest.mark.asyncio
+async def test_list_and_create_build_own_client_and_close_it(monkeypatch) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "POST":
+            return httpx.Response(201, json={"id": "n1", "name": "New"})
+        return httpx.Response(200, json={"items": [{"id": "1", "name": "Weekly"}]})
+
+    _patch_own_client(monkeypatch, handler)
+    svc = MealieClientService("http://mealie", "key")  # no client injected
+    assert await svc.list_shopping_lists() == [{"id": "1", "name": "Weekly"}]
+    assert (await svc.create_shopping_list("New"))["id"] == "n1"
 
 
 @pytest.mark.asyncio
