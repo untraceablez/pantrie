@@ -53,6 +53,21 @@ async def test_create_household_adds_creator_as_admin(db_session):
     assert result.user_role == MemberRole.ADMIN
 
 
+async def test_create_household_seeds_water_staple(db_session):
+    from src.services.staple_service import StapleService
+
+    user = await _make_user(db_session, email="w@example.com", username="watercreator")
+    await db_session.commit()
+    svc = HouseholdService(db_session)
+
+    household = await svc.create_household(
+        user.id, HouseholdCreate(name="Water House", description=None)
+    )
+
+    staples = await StapleService(db_session).list_household_staples(household.id, user.id)
+    assert [s.name for s in staples] == ["water"]
+
+
 # --------------------------------------------------------------------------- #
 # get_household_by_id
 # --------------------------------------------------------------------------- #

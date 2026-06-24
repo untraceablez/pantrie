@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from sqlalchemy import select
 
-from src.api.v1 import allergen, api_clients, auth, barcode, client_gateway, email_confirmation, households, inventory, locations, mealie, notifications, oauth, setup, site_admin, site_settings, users
+from src.api.v1 import allergen, api_clients, auth, barcode, client_gateway, email_confirmation, households, inventory, locations, mealie, notifications, oauth, setup, site_admin, site_settings, staple, users
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
@@ -188,6 +188,7 @@ async def pantrie_exception_handler(request: Request, exc: PantrieException) -> 
 app.include_router(setup.router, prefix="/api/v1")  # Setup must be first (no auth required)
 app.include_router(email_confirmation.router, prefix="/api/v1")  # Email confirmation (no auth required)
 app.include_router(allergen.router, prefix="/api/v1/households", tags=["allergens"])
+app.include_router(staple.router, prefix="/api/v1/households", tags=["staples"])
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(oauth.router, prefix="/api/v1")  # OAuth endpoints (no auth required)
 app.include_router(barcode.router, prefix="/api/v1")

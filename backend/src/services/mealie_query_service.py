@@ -1,11 +1,12 @@
 """Inventory queries for external clients: availability and decrement (US2/US3)."""
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import NotFoundError
 from src.core.logging import setup_logging
+from src.models.household_staple import HouseholdStaple
 from src.models.inventory_item import InventoryItem
 from src.schemas.mealie import (
     AvailabilityResult,
@@ -13,6 +14,7 @@ from src.schemas.mealie import (
     IngredientQuery,
     RecipeMakeability,
 )
+from src.services.ingredient_matching import find_matches, is_match
 
 logger = setup_logging()
 
@@ -20,36 +22,34 @@ logger = setup_logging()
 class MealieQueryService:
     """Match ingredient names to inventory and report/adjust availability.
 
-    Matching is name-based within a household: case-insensitive exact match
-    first, then a substring (ILIKE) fallback. Sufficiency is only computed when
-    the requested unit matches the stored unit (no unit conversion in the MVP).
+    Matching is name-based within a household via the shared, normalised
+    matcher (see :mod:`src.services.ingredient_matching`): canonical equality,
+    then token-subset, then a high-threshold ratio — so spacing/plural/case
+    variants line up. Sufficiency is only computed when the requested unit
+    matches the stored unit (no unit conversion in the MVP).
     """
 
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def _find_matches(self, household_id: int, name: str) -> list[InventoryItem]:
-        normalized = name.strip().lower()
+    async def _load_items(self, household_id: int) -> list[InventoryItem]:
+        result = await self.db.execute(
+            select(InventoryItem).where(InventoryItem.household_id == household_id)
+        )
+        return list(result.scalars().all())
 
-        # Exact (case-insensitive) match first.
-        exact = await self.db.execute(
-            select(InventoryItem).where(
-                InventoryItem.household_id == household_id,
-                func.lower(InventoryItem.name) == normalized,
+    async def _load_staple_names(self, household_id: int) -> list[str]:
+        result = await self.db.execute(
+            select(HouseholdStaple.name).where(
+                HouseholdStaple.household_id == household_id
             )
         )
-        matches = list(exact.scalars().all())
-        if matches:
-            return matches
+        return list(result.scalars().all())
 
-        # Substring fallback.
-        fuzzy = await self.db.execute(
-            select(InventoryItem).where(
-                InventoryItem.household_id == household_id,
-                InventoryItem.name.ilike(f"%{name.strip()}%"),
-            )
-        )
-        return list(fuzzy.scalars().all())
+    @staticmethod
+    def _is_staple(ingredient: str, staples: list[str]) -> bool:
+        """Whether an ingredient matches one of the household's staples."""
+        return any(is_match(ingredient, staple) for staple in staples)
 
     @staticmethod
     def _build_result(query: IngredientQuery, matches: list[InventoryItem]) -> AvailabilityResult:
@@ -77,9 +77,13 @@ class MealieQueryService:
     async def check_availability(
         self, household_id: int, queries: list[IngredientQuery]
     ) -> list[AvailabilityResult]:
+        # Load the household's items once and match each query in memory so the
+        # normalised/fuzzy matcher can run (it can't be expressed as a single
+        # SQL predicate).
+        items = await self._load_items(household_id)
         results: list[AvailabilityResult] = []
         for query in queries:
-            matches = await self._find_matches(household_id, query.name)
+            matches = find_matches(query.name, items, key=lambda i: i.name)
             results.append(self._build_result(query, matches))
         logger.info(
             "Client availability check",
@@ -94,15 +98,22 @@ class MealieQueryService:
         """Annotate Mealie recipes with whether they're makeable from inventory.
 
         Each recipe is ``{recipe_id, name, ingredients: [str]}``. A recipe is
-        makeable when it has ingredients and all of them are in stock.
+        makeable when it has ingredients and all of them are in stock — where
+        "in stock" also covers the household's assumed staples (e.g. water),
+        which are treated as on-hand without an inventory row.
         """
+        staples = await self._load_staple_names(household_id)
         annotated: list[RecipeMakeability] = []
         for recipe in recipes:
             ingredients: list[str] = recipe.get("ingredients", [])
             results = await self.check_availability(
                 household_id, [IngredientQuery(name=n) for n in ingredients]
             )
-            missing = [r.query for r in results if not r.in_stock]
+            missing = [
+                r.query
+                for r in results
+                if not r.in_stock and not self._is_staple(r.query, staples)
+            ]
             annotated.append(
                 RecipeMakeability(
                     recipe_id=recipe["recipe_id"],

@@ -18,6 +18,9 @@ class Household(Base, TimestampMixin):
     allergens: Mapped[list["HouseholdAllergen"]] = relationship(
         "HouseholdAllergen", back_populates="household", cascade="all, delete-orphan"
     )
+    staples: Mapped[list["HouseholdStaple"]] = relationship(
+        "HouseholdStaple", back_populates="household", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Household(id={self.id}, name='{self.name}')>"
