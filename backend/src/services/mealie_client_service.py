@@ -184,6 +184,9 @@ class MealieClientService:
             # Local copy of the list so repeated names within one batch also merge.
             existing = await self._fetch_list_items(client, list_id)
 
+            # Local copy of the list so repeated names within one batch also merge.
+            existing = await self._fetch_list_items(client, list_id)
+
             results: list[dict] = []
             for name in item_names:
                 try:
