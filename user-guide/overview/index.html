@@ -556,6 +556,8 @@
       
         
       
+        
+      
     
     
     
@@ -691,6 +693,15 @@
   <a href="#custom-allergens" class="md-nav__link">
     <span class="md-ellipsis">
       Custom Allergens
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recipes-mealie" class="md-nav__link">
+    <span class="md-ellipsis">
+      Recipes (Mealie)
     </span>
   </a>
   
@@ -955,7 +966,7 @@
         
   
   <span class="md-ellipsis">
-    Barcode Scanning
+    Barcode Scanning & Product Search
   </span>
   
 
@@ -977,6 +988,27 @@
   
   <span class="md-ellipsis">
     Custom Allergens
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Recipes & Mealie
   </span>
   
 
@@ -1650,7 +1682,8 @@
 <li>Reduce food waste</li>
 <li>Manage multiple households</li>
 <li>Track custom allergens</li>
-<li>Scan barcodes for quick entry</li>
+<li>Add items fast by barcode scan or Open Food Facts product search</li>
+<li>See which recipes you can make from your inventory (via Mealie)</li>
 </ul>
 <h2 id="core-concepts">Core Concepts</h2>
 <h3 id="households">Households</h3>
@@ -1686,6 +1719,15 @@
 <li>Visual warnings on items containing allergens</li>
 <li>Works with Open Food Facts allergen data</li>
 </ul>
+<h3 id="recipes-mealie">Recipes (Mealie)</h3>
+<p>Connect a <a href="https://docs.mealie.io">Mealie</a> instance to see which recipes you can
+make from your inventory, and push missing ingredients to a Mealie shopping list:</p>
+<ul>
+<li>Per-recipe "makeability" computed from what's in stock</li>
+<li>Forgiving ingredient matching (e.g. "Corn Starch" ≈ "cornstarch")</li>
+<li>Per-household <strong>staples</strong> (e.g. water) counted as always in-stock</li>
+</ul>
+<p>See <a href="../recipes/">Recipes &amp; Mealie</a>.</p>
 <h2 id="user-roles">User Roles</h2>
 <h3 id="viewer">Viewer</h3>
 <ul>
@@ -1727,7 +1769,6 @@
 <li>Search by name</li>
 <li>Sort by various fields</li>
 <li>Add new items</li>
-<li>Bulk actions</li>
 </ul>
 <h3 id="settings">Settings</h3>
 <p>Configure your household:</p>
@@ -1735,14 +1776,18 @@
 <li>Household information</li>
 <li>Locations management</li>
 <li>Custom allergens</li>
+<li>Pantry staples (assumed-on-hand ingredients)</li>
+<li>Mealie connection (for recipes)</li>
+<li>API clients (for external apps)</li>
 <li>Member management</li>
 <li>Personal settings</li>
 </ul>
 <h2 id="quick-actions">Quick Actions</h2>
 <h3 id="adding-items">Adding Items</h3>
-<p>Two methods:</p>
+<p>Three methods:</p>
 <ol>
-<li><strong>Barcode Scan</strong>: Fast, auto-fills data</li>
+<li><strong>Barcode Scan</strong>: Fast, auto-fills data from Open Food Facts</li>
+<li><strong>Product Name Search</strong>: Search Open Food Facts by name and pick a suggestion</li>
 <li><strong>Manual Entry</strong>: Full control over details</li>
 </ol>
 <h3 id="finding-items">Finding Items</h3>
@@ -1794,7 +1839,6 @@
 <ul>
 <li>Data is stored securely</li>
 <li>Only household members can see your inventory</li>
-<li>You can export your data at any time</li>
 <li>Deletion removes all your data</li>
 </ul>
 <h2 id="detailed-guides">Detailed Guides</h2>
@@ -1802,8 +1846,9 @@
 <li><a href="../households/">Managing Households</a></li>
 <li><a href="../inventory/">Inventory Management</a></li>
 <li><a href="../locations/">Locations</a></li>
-<li><a href="../barcode-scanning/">Barcode Scanning</a></li>
+<li><a href="../barcode-scanning/">Barcode Scanning &amp; Product Search</a></li>
 <li><a href="../allergens/">Custom Allergens</a></li>
+<li><a href="../recipes/">Recipes &amp; Mealie</a></li>
 </ul>
 <h2 id="getting-help">Getting Help</h2>
 <p>If you need assistance:</p>
@@ -1834,7 +1879,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 17, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">June 24, 2026</span>
   </span>
 
     

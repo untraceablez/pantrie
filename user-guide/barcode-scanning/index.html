@@ -26,7 +26,7 @@
     
     
       
-        <title>Barcode Scanning - Pantrie Documentation</title>
+        <title>Barcode Scanning & Product Search - Pantrie Documentation</title>
       
     
     
@@ -80,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#barcode-scanning" class="md-skip">
+        <a href="#barcode-scanning-product-search" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +118,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Barcode Scanning
+              Barcode Scanning & Product Search
             
           </span>
         </div>
@@ -556,6 +556,8 @@
       
         
       
+        
+      
     
     
     
@@ -689,15 +691,72 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Barcode Scanning & Product Search
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
-    Barcode Scanning
+    Barcode Scanning & Product Search
   </span>
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#scan-or-enter-a-barcode" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scan or enter a barcode
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-by-product-name" class="md-nav__link">
+    <span class="md-ellipsis">
+      Search by product name
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-a-product-isnt-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      When a product isn't found
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -716,6 +775,27 @@
   
   <span class="md-ellipsis">
     Custom Allergens
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Recipes & Mealie
   </span>
   
 
@@ -1379,13 +1459,48 @@
   
 
 
-<h1 id="barcode-scanning">Barcode Scanning</h1>
-<p>Documentation coming soon.</p>
-<p>Learn about:
-- How barcode scanning works
-- Supported barcode formats
-- Open Food Facts integration
-- Troubleshooting scans</p>
+<h1 id="barcode-scanning-product-search">Barcode Scanning &amp; Product Search</h1>
+<p>The <strong>Add Item</strong> form can pull product details from
+<a href="https://world.openfoodfacts.org">Open Food Facts</a> in two ways — by barcode, or
+by product name — so you rarely have to type everything by hand.</p>
+<h2 id="scan-or-enter-a-barcode">Scan or enter a barcode</h2>
+<p>In the <strong>Scan or Enter Barcode</strong> section:</p>
+<ul>
+<li><strong>Camera scan</strong> — click <strong>Camera</strong> to scan a barcode with your device camera.
+  Supported formats include UPC, EAN, Code 128, Code 39, ITF, and QR.</li>
+<li><strong>USB / Bluetooth scanner</strong> — most hardware scanners "type" the barcode into the
+  field automatically; press <kbd>Enter</kbd> (or <strong>Lookup</strong>) to fetch details.</li>
+<li><strong>Manual entry</strong> — type or paste a barcode and click <strong>Lookup</strong>.</li>
+</ul>
+<p>When a product is found, the form is filled in automatically (name, brand, image,
+ingredients, nutrition grade, serving size, allergens) and a green confirmation
+shows which data was available.</p>
+<div class="admonition tip">
+<p class="admonition-title">Scanning works best on mobile</p>
+<p>Pantrie is mobile-responsive — add it to your home screen and scan barcodes
+with your phone camera while you unpack groceries.</p>
+</div>
+<h2 id="search-by-product-name">Search by product name</h2>
+<p>No barcode handy? Use the <strong>Search by Product Name</strong> section:</p>
+<ol>
+<li>Type a product name (e.g. <em>organic peanut butter</em>) and click <strong>Search</strong> (or
+   press <kbd>Enter</kbd>).</li>
+<li>Pantrie shows up to <strong>three</strong> Open Food Facts suggestions, each with its image,
+   name, and brand.</li>
+<li>Click a suggestion to fill the form — Pantrie looks the product up by its
+   barcode behind the scenes, so the fields populate exactly as a scan would.</li>
+<li>If none of the suggestions fit, follow <strong>See more results on Open Food Facts →</strong>
+   to browse the full result list on the web.</li>
+</ol>
+<h2 id="when-a-product-isnt-found">When a product isn't found</h2>
+<p>Not every product is in Open Food Facts. If a lookup or search comes up empty,
+just fill in the details manually — only the name and quantity are required.</p>
+<div class="admonition note">
+<p class="admonition-title">Data accuracy</p>
+<p>Open Food Facts is community-maintained, so details (especially nutrition and
+allergens) can be incomplete or occasionally wrong. Review what's imported,
+and check ingredient lists yourself where it matters.</p>
+</div>
 
 
 
@@ -1408,7 +1523,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 17, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">June 24, 2026</span>
   </span>
 
     

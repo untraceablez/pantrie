@@ -556,6 +556,8 @@
       
         
       
+        
+      
     
     
     
@@ -647,6 +649,17 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Inventory Management
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -656,6 +669,70 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#adding-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adding items
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#editing-and-deleting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Editing and deleting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#searching-filtering-and-sorting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Searching, filtering, and sorting
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expiration-indicators" class="md-nav__link">
+    <span class="md-ellipsis">
+      Expiration indicators
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#allergens-and-recipes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Allergens and recipes
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -694,7 +771,7 @@
         
   
   <span class="md-ellipsis">
-    Barcode Scanning
+    Barcode Scanning & Product Search
   </span>
   
 
@@ -716,6 +793,27 @@
   
   <span class="md-ellipsis">
     Custom Allergens
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recipes/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Recipes & Mealie
   </span>
   
 
@@ -1380,12 +1478,59 @@
 
 
 <h1 id="inventory-management">Inventory Management</h1>
-<p>Documentation coming soon.</p>
-<p>Learn about:
-- Adding items
-- Editing items
-- Searching and filtering
-- Bulk operations</p>
+<p>Your inventory is the list of items in a household. Editors and admins can add,
+edit, and remove items; viewers can browse and search.</p>
+<h2 id="adding-items">Adding items</h2>
+<p>Open <strong>Add Item</strong> from the inventory page. You can populate the form three ways:</p>
+<ul>
+<li><strong>Scan or enter a barcode</strong> — fetches product details from Open Food Facts.</li>
+<li><strong>Search by product name</strong> — find a product by name and click a suggestion to
+  fill the form. See <a href="../barcode-scanning/">Barcode Scanning &amp; Product Search</a>.</li>
+<li><strong>Manual entry</strong> — type the details yourself.</li>
+</ul>
+<p>Only <strong>name</strong> and <strong>quantity</strong> are required. Other fields — brand, description,
+unit, location, purchase/expiration dates, image, and notes — are optional. You
+can attach an image by uploading a file or pasting an image URL.</p>
+<div class="admonition tip">
+<p class="admonition-title">Multiple households</p>
+<p>If you belong to more than one household, pick the target household at the top
+of the form before saving.</p>
+</div>
+<h2 id="editing-and-deleting">Editing and deleting</h2>
+<p>From any item card:</p>
+<ul>
+<li><strong>Edit</strong> (pencil) opens the item for changes — handy for updating quantities as
+  you use things up.</li>
+<li><strong>Delete</strong> (trash) removes the item after a confirmation.</li>
+</ul>
+<p>Clicking the body of a card opens a detail view with the full nutrition label,
+ingredients, and allergen warnings, where you can also edit or delete.</p>
+<h2 id="searching-filtering-and-sorting">Searching, filtering, and sorting</h2>
+<p>On the inventory page you can:</p>
+<ul>
+<li><strong>Search</strong> by name with the search bar.</li>
+<li><strong>Filter by location</strong> using the location tabs (or <strong>All Items</strong>).</li>
+<li><strong>Sort</strong> by name, expiration date, date added, or quantity — click a sort field
+  again to flip between ascending and descending.</li>
+</ul>
+<p>Results are paginated when there are many items.</p>
+<h2 id="expiration-indicators">Expiration indicators</h2>
+<p>Items are color-coded by how close they are to expiring:</p>
+<ul>
+<li>🟢 <strong>Green</strong> — fresh (more than 7 days)</li>
+<li>🟡 <strong>Yellow</strong> — use soon (within 7 days)</li>
+<li>🟠 <strong>Orange</strong> — urgent (within 3 days)</li>
+<li>🔴 <strong>Red</strong> — expired or expiring today</li>
+</ul>
+<p>Set expiration dates wherever you can — even rough estimates help reduce waste,
+and you'll see warnings as items age.</p>
+<h2 id="allergens-and-recipes">Allergens and recipes</h2>
+<ul>
+<li>Items are checked against your household's <a href="../allergens/">custom allergens</a> and
+  flagged with a warning when ingredients match.</li>
+<li>What you have on hand drives recipe <strong>makeability</strong> — see
+  <a href="../recipes/">Recipes &amp; Mealie</a>.</li>
+</ul>
 
 
 
@@ -1408,7 +1553,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1-2.1-2M12.5 7v5.2l4 2.4-1 1L11 13V7h1.5M11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2v1.8Z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">November 17, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date">June 24, 2026</span>
   </span>
 
     
