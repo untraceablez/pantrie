@@ -94,6 +94,50 @@ class MealieClientService:
             if should_close:
                 await client.aclose()
 
+    async def list_shopping_lists(self) -> list[dict]:
+        """Return ``[{id, name}]`` for the instance's shopping lists."""
+        client = self._build_client()
+        should_close = self._client is None
+        try:
+            lists = await self._get_json(client, "/api/households/shopping/lists")
+            items = lists.get("items") if isinstance(lists, dict) else lists
+            return [
+                {"id": str(i.get("id")), "name": i.get("name") or str(i.get("id"))}
+                for i in (items or [])
+            ]
+        finally:
+            if should_close:
+                await client.aclose()
+
+    async def create_shopping_list(self, name: str) -> dict:
+        """Create a new shopping list and return ``{id, name}``."""
+        client = self._build_client()
+        should_close = self._client is None
+        try:
+            try:
+                resp = await client.post(
+                    "/api/households/shopping/lists", json={"name": name}
+                )
+            except httpx.HTTPError as e:
+                raise ExternalServiceError(
+                    message=f"Could not reach Mealie at {self.base_url}: {e}"
+                )
+            if resp.status_code >= 400:
+                raise ExternalServiceError(
+                    message=f"Mealie returned {resp.status_code} creating shopping list"
+                )
+            try:
+                data = resp.json()
+            except ValueError:
+                raise ExternalServiceError(
+                    message="Mealie returned a non-JSON response creating a shopping list"
+                )
+            logger.info("Created Mealie shopping list", base_url=self.base_url, name=name)
+            return {"id": str(data.get("id")), "name": data.get("name") or name}
+        finally:
+            if should_close:
+                await client.aclose()
+
     async def _fetch_list_items(self, client: httpx.AsyncClient, list_id: str) -> list[dict]:
         """Existing items on a shopping list, used to de-duplicate before adding."""
         payload = await self._get_json(
@@ -113,25 +157,32 @@ class MealieClientService:
                 return item
         return None
 
-    async def add_to_shopping_list(self, item_names: list[str]) -> list[dict]:
-        """Merge items into the household's first Mealie shopping list (best-effort).
+    async def add_to_shopping_list(
+        self, item_names: list[str], list_id: str | None = None
+    ) -> list[dict]:
+        """Merge items into a Mealie shopping list (best-effort).
 
-        Before adding, the list's current items are fetched; an ingredient that
-        matches an existing line (via the shared normalized matcher) increments
-        that line's quantity instead of creating a duplicate (#34). Returns a
-        per-item ``{name, added, updated, detail}`` list so partial success is
-        visible to the caller (FR-026).
+        ``list_id`` selects the target; when omitted the first list is used
+        (back-compat). Before adding, the list's current items are fetched; an
+        ingredient that matches an existing line (via the shared normalized
+        matcher) increments that line's quantity instead of creating a duplicate
+        (#34). Returns a per-item ``{name, added, updated, detail}`` list so
+        partial success is visible to the caller (FR-026).
         """
         client = self._build_client()
         should_close = self._client is None
         try:
-            lists = await self._get_json(client, "/api/households/shopping/lists")
-            items = lists.get("items") if isinstance(lists, dict) else lists
-            if not items:
-                raise ExternalServiceError(
-                    message="No Mealie shopping list exists to add items to"
-                )
-            list_id = items[0].get("id")
+            if list_id is None:
+                lists = await self._get_json(client, "/api/households/shopping/lists")
+                items = lists.get("items") if isinstance(lists, dict) else lists
+                if not items:
+                    raise ExternalServiceError(
+                        message="No Mealie shopping list exists to add items to"
+                    )
+                list_id = items[0].get("id")
+
+            # Local copy of the list so repeated names within one batch also merge.
+            existing = await self._fetch_list_items(client, list_id)
 
             # Local copy of the list so repeated names within one batch also merge.
             existing = await self._fetch_list_items(client, list_id)
