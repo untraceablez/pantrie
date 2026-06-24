@@ -335,9 +335,31 @@ describe('mealie service', () => {
     await mod.getMealieRecipes(6)
     expect(mockApi.get).toHaveBeenCalledWith('/households/6/mealie/recipes')
 
-    mockApi.post.mockResolvedValue(data({ requested: 1, added: 1, items: [] }))
+    mockApi.get.mockResolvedValue(data({ lists: [{ id: '1', name: 'Weekly' }] }))
+    expect(await mod.listShoppingLists(6)).toEqual([{ id: '1', name: 'Weekly' }])
+    expect(mockApi.get).toHaveBeenCalledWith('/households/6/mealie/shopping-lists')
+
+    mockApi.post.mockResolvedValue(data({ requested: 1, added: 1, updated: 0, items: [] }))
     await mod.pushToShoppingList(6, ['milk'])
-    expect(mockApi.post).toHaveBeenCalledWith('/households/6/mealie/shopping-list', { items: ['milk'] })
+    expect(mockApi.post).toHaveBeenCalledWith('/households/6/mealie/shopping-list', {
+      items: ['milk'],
+      list_id: undefined,
+      create_list_name: undefined,
+    })
+
+    await mod.pushToShoppingList(6, ['milk'], { listId: 'l2' })
+    expect(mockApi.post).toHaveBeenLastCalledWith('/households/6/mealie/shopping-list', {
+      items: ['milk'],
+      list_id: 'l2',
+      create_list_name: undefined,
+    })
+
+    await mod.pushToShoppingList(6, ['milk'], { createListName: 'New List' })
+    expect(mockApi.post).toHaveBeenLastCalledWith('/households/6/mealie/shopping-list', {
+      items: ['milk'],
+      list_id: undefined,
+      create_list_name: 'New List',
+    })
   })
 })
 

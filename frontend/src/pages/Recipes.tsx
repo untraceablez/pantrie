@@ -4,9 +4,10 @@ import { useThemeStore } from '@/store/themeStore'
 import { listHouseholds, type HouseholdWithRole } from '@/services/household'
 import {
   getMealieRecipes,
-  pushToShoppingList,
   type RecipeMakeability,
+  type ShoppingListPushResult,
 } from '@/services/mealie'
+import ShoppingListPushModal from '@/components/recipes/ShoppingListPushModal'
 
 export default function Recipes() {
   const navigate = useNavigate()
@@ -17,8 +18,9 @@ export default function Recipes() {
   const [recipes, setRecipes] = useState<RecipeMakeability[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [pushing, setPushing] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
+  // The recipe whose "add missing" modal is open, if any.
+  const [pushTarget, setPushTarget] = useState<RecipeMakeability | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -57,19 +59,13 @@ export default function Recipes() {
     })()
   }, [householdId])
 
-  const handlePushMissing = async (recipe: RecipeMakeability) => {
-    if (householdId === null || recipe.missing.length === 0) return
-    try {
-      setPushing(recipe.recipe_id)
-      setNotice('')
-      const result = await pushToShoppingList(householdId, recipe.missing)
-      setNotice(`${recipe.name}: added ${result.added}/${result.requested} to Mealie shopping list`)
-      setTimeout(() => setNotice(''), 4000)
-    } catch {
-      setNotice(`${recipe.name}: failed to update Mealie shopping list`)
-    } finally {
-      setPushing(null)
-    }
+  const handlePushed = (recipe: RecipeMakeability, result: ShoppingListPushResult) => {
+    setPushTarget(null)
+    const updatedNote = result.updated > 0 ? ` (${result.updated} updated)` : ''
+    setNotice(
+      `${recipe.name}: added ${result.added}/${result.requested} to Mealie shopping list${updatedNote}`
+    )
+    setTimeout(() => setNotice(''), 4000)
   }
 
   return (
@@ -160,11 +156,10 @@ export default function Recipes() {
                       Missing: {recipe.missing.join(', ')}
                     </p>
                     <button
-                      onClick={() => handlePushMissing(recipe)}
-                      disabled={pushing === recipe.recipe_id}
+                      onClick={() => setPushTarget(recipe)}
                       className="mt-3 px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {pushing === recipe.recipe_id ? 'Adding…' : 'Add missing to Mealie list'}
+                      Add missing to Mealie list
                     </button>
                   </>
                 )}
@@ -177,6 +172,15 @@ export default function Recipes() {
           </p>
         ) : null}
       </div>
+
+      {householdId !== null && pushTarget && (
+        <ShoppingListPushModal
+          householdId={householdId}
+          recipe={pushTarget}
+          onClose={() => setPushTarget(null)}
+          onPushed={handlePushed}
+        />
+      )}
     </div>
   )
 }

@@ -18,16 +18,28 @@ export interface RecipeMakeability {
   missing: string[]
 }
 
+export interface ShoppingList {
+  id: string
+  name: string
+}
+
 export interface ShoppingListPushItem {
   name: string
   added: boolean
+  updated: boolean
   detail: string | null
 }
 
 export interface ShoppingListPushResult {
   requested: number
   added: number
+  updated: number
   items: ShoppingListPushItem[]
+}
+
+export interface PushTarget {
+  listId?: string
+  createListName?: string
 }
 
 const base = (householdId: number) => `/households/${householdId}/mealie`
@@ -64,12 +76,20 @@ export const getMealieRecipes = async (
   return response.data
 }
 
+export const listShoppingLists = async (householdId: number): Promise<ShoppingList[]> => {
+  const response = await apiClient.get<{ lists: ShoppingList[] }>(`${base(householdId)}/shopping-lists`)
+  return response.data.lists
+}
+
 export const pushToShoppingList = async (
   householdId: number,
-  items: string[]
+  items: string[],
+  target: PushTarget = {}
 ): Promise<ShoppingListPushResult> => {
   const response = await apiClient.post<ShoppingListPushResult>(`${base(householdId)}/shopping-list`, {
     items,
+    list_id: target.listId,
+    create_list_name: target.createListName,
   })
   return response.data
 }
