@@ -90,5 +90,6 @@ async def push_to_shopping_list(
     return ShoppingListPushResult(
         requested=len(body.items),
         added=sum(1 for r in results if r["added"]),
+        updated=sum(1 for r in results if r.get("updated")),
         items=results,
     )
