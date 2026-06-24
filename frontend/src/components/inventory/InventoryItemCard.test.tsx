@@ -219,4 +219,37 @@ describe('InventoryItemCard', () => {
     render(<InventoryItemCard item={item({ name: 'Milk' })} />)
     expect(() => fireEvent.click(screen.getByText('Milk'))).not.toThrow()
   })
+
+  // The card itself is the focusable element (tabIndex 0); it's the nearest
+  // tabbable ancestor of the item name.
+  const getCard = (name: string) =>
+    screen.getByText(name).closest('[tabindex="0"]') as HTMLElement
+
+  it('makes the card focusable for keyboard users', () => {
+    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={vi.fn()} />)
+    expect(getCard('Milk')).toHaveAttribute('tabindex', '0')
+  })
+
+  it('activates on Enter and Space, but not other keys', () => {
+    const onClick = vi.fn()
+    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={onClick} />)
+    const card = getCard('Milk')
+    fireEvent.keyDown(card, { key: 'Enter' })
+    fireEvent.keyDown(card, { key: ' ' })
+    expect(onClick).toHaveBeenCalledTimes(2)
+    fireEvent.keyDown(card, { key: 'a' })
+    expect(onClick).toHaveBeenCalledTimes(2)
+  })
+
+  it('ignores keyboard activation that originates from a nested button', () => {
+    const onClick = vi.fn()
+    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={onClick} onEdit={vi.fn()} />)
+    fireEvent.keyDown(screen.getByTitle('Edit item'), { key: 'Enter' })
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  it('tolerates keyboard activation with no onClick handler', () => {
+    render(<InventoryItemCard item={item({ name: 'Milk' })} />)
+    expect(() => fireEvent.keyDown(getCard('Milk'), { key: 'Enter' })).not.toThrow()
+  })
 })
