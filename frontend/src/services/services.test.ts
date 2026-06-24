@@ -69,6 +69,25 @@ describe('allergen service', () => {
 })
 
 // --------------------------------------------------------------------------- //
+// staple
+// --------------------------------------------------------------------------- //
+describe('staple service', () => {
+  it('lists, creates, and deletes staples', async () => {
+    const mod = await import('./staple')
+    mockApi.get.mockResolvedValue(data([{ id: 1, name: 'water' }]))
+    expect(await mod.listHouseholdStaples(7)).toEqual([{ id: 1, name: 'water' }])
+    expect(mockApi.get).toHaveBeenCalledWith('/households/7/staples')
+
+    mockApi.post.mockResolvedValue(data({ id: 2, name: 'salt' }))
+    expect(await mod.createStaple(7, { name: 'salt' })).toEqual({ id: 2, name: 'salt' })
+    expect(mockApi.post).toHaveBeenCalledWith('/households/7/staples', { name: 'salt' })
+
+    await mod.deleteStaple(2)
+    expect(mockApi.delete).toHaveBeenCalledWith('/households/staples/2')
+  })
+})
+
+// --------------------------------------------------------------------------- //
 // apiClients
 // --------------------------------------------------------------------------- //
 describe('apiClients service', () => {

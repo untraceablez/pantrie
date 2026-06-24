@@ -12,6 +12,7 @@ vi.mock('@/services/household', () => ({
 // Stub the heavy child managers; they have their own suites.
 vi.mock('./LocationManager', () => ({ default: () => <div>LOCATION MANAGER</div> }))
 vi.mock('./AllergenManager', () => ({ default: () => <div>ALLERGEN MANAGER</div> }))
+vi.mock('./StapleManager', () => ({ default: () => <div>STAPLE MANAGER</div> }))
 vi.mock('./HouseholdMembers', () => ({ default: () => <div>HOUSEHOLD MEMBERS</div> }))
 vi.mock('./ApiClientManager', () => ({ default: () => <div>API CLIENTS</div> }))
 vi.mock('./MealieConnectionSettings', () => ({ default: () => <div>MEALIE SETTINGS</div> }))

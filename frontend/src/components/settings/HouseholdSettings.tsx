@@ -3,6 +3,7 @@ import { listHouseholds, updateHousehold, HouseholdWithRole } from '@/services/h
 import { useAuthStore } from '@/store/authStore'
 import LocationManager from './LocationManager'
 import AllergenManager from './AllergenManager'
+import StapleManager from './StapleManager'
 import HouseholdMembers from './HouseholdMembers'
 import ApiClientManager from './ApiClientManager'
 import MealieConnectionSettings from './MealieConnectionSettings'
@@ -201,6 +202,11 @@ export default function HouseholdSettings() {
       {/* Allergen Manager */}
       {selectedHouseholdId && (
         <AllergenManager householdId={selectedHouseholdId} canEdit={canEdit} />
+      )}
+
+      {/* Staple Manager */}
+      {selectedHouseholdId && (
+        <StapleManager householdId={selectedHouseholdId} canEdit={canEdit} />
       )}
 
       {/* Location Manager */}
