@@ -12,6 +12,9 @@ async def test_add_to_shopping_list_partial_success() -> None:
         if request.url.path == "/api/households/shopping/lists":
             return httpx.Response(200, json={"items": [{"id": "list-1"}]})
         if request.url.path == "/api/households/shopping/items":
+            if request.method == "GET":
+                # No existing items, so every push is a fresh create.
+                return httpx.Response(200, json={"items": []})
             body = request.content.decode()
             # Fail one specific item to exercise partial success.
             return httpx.Response(500 if "vanilla" in body else 201)

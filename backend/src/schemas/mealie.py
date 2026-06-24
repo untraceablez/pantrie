@@ -95,17 +95,38 @@ class RecipesResponse(BaseModel):
     recipes: list[RecipeMakeability]
 
 
+class ShoppingList(BaseModel):
+    """A Mealie shopping list the user can target."""
+
+    id: str
+    name: str
+
+
+class ShoppingListsResponse(BaseModel):
+    """The household's available Mealie shopping lists."""
+
+    lists: list[ShoppingList]
+
+
 class ShoppingListPushRequest(BaseModel):
-    """Ingredients to add to the Mealie shopping list."""
+    """Ingredients to add to a Mealie shopping list.
+
+    Target resolution: ``create_list_name`` (make a new list) takes precedence,
+    then ``list_id`` (an existing list); if neither is given the first list is
+    used (back-compat).
+    """
 
     items: list[str] = Field(min_length=1, max_length=100)
+    list_id: str | None = None
+    create_list_name: str | None = Field(default=None, max_length=255)
 
 
 class ShoppingListPushItem(BaseModel):
     """Result of attempting to add one ingredient to the Mealie shopping list."""
 
     name: str
-    added: bool
+    added: bool  # successfully applied to the list (newly created or incremented)
+    updated: bool = False  # True when an existing line item's quantity was incremented
     detail: str | None = None
 
 
@@ -113,5 +134,6 @@ class ShoppingListPushResult(BaseModel):
     """Outcome of pushing missing ingredients to a Mealie shopping list."""
 
     requested: int
-    added: int
+    added: int  # total successfully applied (new + incremented)
+    updated: int = 0  # subset of ``added`` that incremented an existing item
     items: list[ShoppingListPushItem]
