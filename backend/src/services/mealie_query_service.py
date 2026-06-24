@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import NotFoundError
 from src.core.logging import setup_logging
+from src.models.household_staple import HouseholdStaple
 from src.models.inventory_item import InventoryItem
 from src.schemas.mealie import (
     AvailabilityResult,
@@ -13,7 +14,7 @@ from src.schemas.mealie import (
     IngredientQuery,
     RecipeMakeability,
 )
-from src.services.ingredient_matching import find_matches
+from src.services.ingredient_matching import find_matches, is_match
 
 logger = setup_logging()
 
@@ -36,6 +37,19 @@ class MealieQueryService:
             select(InventoryItem).where(InventoryItem.household_id == household_id)
         )
         return list(result.scalars().all())
+
+    async def _load_staple_names(self, household_id: int) -> list[str]:
+        result = await self.db.execute(
+            select(HouseholdStaple.name).where(
+                HouseholdStaple.household_id == household_id
+            )
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    def _is_staple(ingredient: str, staples: list[str]) -> bool:
+        """Whether an ingredient matches one of the household's staples."""
+        return any(is_match(ingredient, staple) for staple in staples)
 
     @staticmethod
     def _build_result(query: IngredientQuery, matches: list[InventoryItem]) -> AvailabilityResult:
@@ -84,15 +98,22 @@ class MealieQueryService:
         """Annotate Mealie recipes with whether they're makeable from inventory.
 
         Each recipe is ``{recipe_id, name, ingredients: [str]}``. A recipe is
-        makeable when it has ingredients and all of them are in stock.
+        makeable when it has ingredients and all of them are in stock — where
+        "in stock" also covers the household's assumed staples (e.g. water),
+        which are treated as on-hand without an inventory row.
         """
+        staples = await self._load_staple_names(household_id)
         annotated: list[RecipeMakeability] = []
         for recipe in recipes:
             ingredients: list[str] = recipe.get("ingredients", [])
             results = await self.check_availability(
                 household_id, [IngredientQuery(name=n) for n in ingredients]
             )
-            missing = [r.query for r in results if not r.in_stock]
+            missing = [
+                r.query
+                for r in results
+                if not r.in_stock and not self._is_staple(r.query, staples)
+            ]
             annotated.append(
                 RecipeMakeability(
                     recipe_id=recipe["recipe_id"],
