@@ -105,7 +105,8 @@ class ShoppingListPushItem(BaseModel):
     """Result of attempting to add one ingredient to the Mealie shopping list."""
 
     name: str
-    added: bool
+    added: bool  # successfully applied to the list (newly created or incremented)
+    updated: bool = False  # True when an existing line item's quantity was incremented
     detail: str | None = None
 
 
@@ -113,5 +114,6 @@ class ShoppingListPushResult(BaseModel):
     """Outcome of pushing missing ingredients to a Mealie shopping list."""
 
     requested: int
-    added: int
+    added: int  # total successfully applied (new + incremented)
+    updated: int = 0  # subset of ``added`` that incremented an existing item
     items: list[ShoppingListPushItem]
