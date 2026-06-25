@@ -6,7 +6,7 @@ interface StapleManagerProps {
   canEdit: boolean
 }
 
-export default function StapleManager({ householdId, canEdit }: StapleManagerProps) {
+export default function StapleManager({ householdId, canEdit }: Readonly<StapleManagerProps>) {
   const [staples, setStaples] = useState<Staple[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -67,6 +67,74 @@ export default function StapleManager({ householdId, canEdit }: StapleManagerPro
     }
   }
 
+  const renderStapleList = () => {
+    if (loading) {
+      return <p className="text-gray-500 dark:text-gray-400 text-center py-8">Loading staples...</p>
+    }
+    if (staples.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500 dark:text-gray-400 mb-2">No staples yet</p>
+          {canEdit && (
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Add staples above so common pantry items aren't flagged as missing for recipes
+            </p>
+          )}
+        </div>
+      )
+    }
+    return (
+      <div className="space-y-2">
+        {staples.map((staple) => (
+          <div
+            key={staple.id}
+            className="flex items-center justify-between border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:shadow-sm transition-shadow bg-white dark:bg-gray-700"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-blue-600 dark:text-blue-400"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <span className="text-gray-900 dark:text-white font-medium capitalize">
+                {staple.name}
+              </span>
+            </div>
+
+            {canEdit && (
+              <button
+                onClick={() => handleDelete(staple.id)}
+                disabled={deletingId === staple.id}
+                className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-500 disabled:opacity-50"
+                title="Remove staple"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
       <div className="mb-4">
@@ -107,67 +175,7 @@ export default function StapleManager({ householdId, canEdit }: StapleManagerPro
       )}
 
       {/* Staple List */}
-      {loading ? (
-        <p className="text-gray-500 dark:text-gray-400 text-center py-8">Loading staples...</p>
-      ) : staples.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500 dark:text-gray-400 mb-2">No staples yet</p>
-          {canEdit && (
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              Add staples above so common pantry items aren't flagged as missing for recipes
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {staples.map((staple) => (
-            <div
-              key={staple.id}
-              className="flex items-center justify-between border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:shadow-sm transition-shadow bg-white dark:bg-gray-700"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-blue-600 dark:text-blue-400"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M5 13l4 4L19 7"></path>
-                  </svg>
-                </div>
-                <span className="text-gray-900 dark:text-white font-medium capitalize">
-                  {staple.name}
-                </span>
-              </div>
-
-              {canEdit && (
-                <button
-                  onClick={() => handleDelete(staple.id)}
-                  disabled={deletingId === staple.id}
-                  className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-500 disabled:opacity-50"
-                  title="Remove staple"
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {renderStapleList()}
     </div>
   )
 }

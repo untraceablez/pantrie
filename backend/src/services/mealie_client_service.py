@@ -15,6 +15,10 @@ logger = setup_logging()
 
 DEFAULT_TIMEOUT = 15.0
 
+# Mealie shopping endpoints (paths differ across Mealie versions; see module docstring).
+_SHOPPING_LISTS_PATH = "/api/households/shopping/lists"
+_SHOPPING_ITEMS_PATH = "/api/households/shopping/items"
+
 
 def _item_display_name(item: dict) -> str:
     """Best human label for an existing Mealie shopping-list item."""
@@ -99,7 +103,7 @@ class MealieClientService:
         client = self._build_client()
         should_close = self._client is None
         try:
-            lists = await self._get_json(client, "/api/households/shopping/lists")
+            lists = await self._get_json(client, _SHOPPING_LISTS_PATH)
             items = lists.get("items") if isinstance(lists, dict) else lists
             return [
                 {"id": str(i.get("id")), "name": i.get("name") or str(i.get("id"))}
@@ -116,7 +120,7 @@ class MealieClientService:
         try:
             try:
                 resp = await client.post(
-                    "/api/households/shopping/lists", json={"name": name}
+                    _SHOPPING_LISTS_PATH, json={"name": name}
                 )
             except httpx.HTTPError as e:
                 raise ExternalServiceError(
@@ -142,7 +146,7 @@ class MealieClientService:
         """Existing items on a shopping list, used to de-duplicate before adding."""
         payload = await self._get_json(
             client,
-            "/api/households/shopping/items",
+            _SHOPPING_ITEMS_PATH,
             params={"queryFilter": f"shoppingListId={list_id}"},
         )
         items = payload.get("items") if isinstance(payload, dict) else payload
@@ -156,6 +160,79 @@ class MealieClientService:
             if label and is_match(name, label):
                 return item
         return None
+
+    async def _resolve_list_id(
+        self, client: httpx.AsyncClient, list_id: str | None
+    ) -> str:
+        """The target list id: the given one, else the instance's first list."""
+        if list_id is not None:
+            return list_id
+        lists = await self._get_json(client, _SHOPPING_LISTS_PATH)
+        items = lists.get("items") if isinstance(lists, dict) else lists
+        if not items:
+            raise ExternalServiceError(
+                message="No Mealie shopping list exists to add items to"
+            )
+        return items[0].get("id")
+
+    async def _increment_existing(
+        self, client: httpx.AsyncClient, name: str, match: dict
+    ) -> dict:
+        """Bump an existing line's quantity by one; returns the per-item result."""
+        new_qty = (match.get("quantity") or 1) + 1
+        resp = await client.put(
+            f"{_SHOPPING_ITEMS_PATH}/{match['id']}",
+            json={**match, "quantity": new_qty},
+        )
+        ok = resp.status_code < 300
+        if ok:
+            match["quantity"] = new_qty
+        return {
+            "name": name,
+            "added": ok,
+            "updated": ok,
+            "detail": None if ok else f"Mealie returned {resp.status_code}",
+        }
+
+    async def _create_item(
+        self, client: httpx.AsyncClient, name: str, list_id: str, existing: list[dict]
+    ) -> dict:
+        """Add a new line item; tracks it in ``existing`` so later dupes merge."""
+        resp = await client.post(
+            _SHOPPING_ITEMS_PATH,
+            json={
+                "shoppingListId": list_id,
+                "note": name,
+                "quantity": 1,
+                "checked": False,
+            },
+        )
+        ok = resp.status_code < 300
+        if ok:
+            created = {"note": name, "quantity": 1}
+            try:
+                created.update({"id": resp.json().get("id")})
+            except ValueError:
+                pass
+            existing.append(created)
+        return {
+            "name": name,
+            "added": ok,
+            "updated": False,
+            "detail": None if ok else f"Mealie returned {resp.status_code}",
+        }
+
+    async def _push_one(
+        self, client: httpx.AsyncClient, name: str, list_id: str, existing: list[dict]
+    ) -> dict:
+        """Merge a single ingredient into the list (increment match or create)."""
+        try:
+            match = self._find_existing(name, existing)
+            if match is not None:
+                return await self._increment_existing(client, name, match)
+            return await self._create_item(client, name, list_id, existing)
+        except httpx.HTTPError as e:
+            return {"name": name, "added": False, "updated": False, "detail": str(e)}
 
     async def add_to_shopping_list(
         self, item_names: list[str], list_id: str | None = None
@@ -172,71 +249,15 @@ class MealieClientService:
         client = self._build_client()
         should_close = self._client is None
         try:
-            if list_id is None:
-                lists = await self._get_json(client, "/api/households/shopping/lists")
-                items = lists.get("items") if isinstance(lists, dict) else lists
-                if not items:
-                    raise ExternalServiceError(
-                        message="No Mealie shopping list exists to add items to"
-                    )
-                list_id = items[0].get("id")
+            list_id = await self._resolve_list_id(client, list_id)
 
             # Local copy of the list so repeated names within one batch also merge.
             existing = await self._fetch_list_items(client, list_id)
 
-            # Local copy of the list so repeated names within one batch also merge.
-            existing = await self._fetch_list_items(client, list_id)
-
-            results: list[dict] = []
-            for name in item_names:
-                try:
-                    match = self._find_existing(name, existing)
-                    if match is not None:
-                        new_qty = (match.get("quantity") or 1) + 1
-                        resp = await client.put(
-                            f"/api/households/shopping/items/{match['id']}",
-                            json={**match, "quantity": new_qty},
-                        )
-                        ok = resp.status_code < 300
-                        if ok:
-                            match["quantity"] = new_qty
-                        results.append(
-                            {
-                                "name": name,
-                                "added": ok,
-                                "updated": ok,
-                                "detail": None if ok else f"Mealie returned {resp.status_code}",
-                            }
-                        )
-                    else:
-                        resp = await client.post(
-                            "/api/households/shopping/items",
-                            json={
-                                "shoppingListId": list_id,
-                                "note": name,
-                                "quantity": 1,
-                                "checked": False,
-                            },
-                        )
-                        ok = resp.status_code < 300
-                        if ok:
-                            # Track it so a duplicate later in this batch increments.
-                            created = {"note": name, "quantity": 1}
-                            try:
-                                created.update({"id": resp.json().get("id")})
-                            except ValueError:
-                                pass
-                            existing.append(created)
-                        results.append(
-                            {
-                                "name": name,
-                                "added": ok,
-                                "updated": False,
-                                "detail": None if ok else f"Mealie returned {resp.status_code}",
-                            }
-                        )
-                except httpx.HTTPError as e:
-                    results.append({"name": name, "added": False, "updated": False, "detail": str(e)})
+            results = [
+                await self._push_one(client, name, list_id, existing)
+                for name in item_names
+            ]
             logger.info(
                 "Pushed items to Mealie shopping list",
                 base_url=self.base_url,

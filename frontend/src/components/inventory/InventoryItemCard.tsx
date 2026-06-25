@@ -119,33 +119,22 @@ export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: I
     })
   }
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger if clicking on edit/delete buttons
-    if ((e.target as HTMLElement).closest('button')) {
-      return
-    }
-    onClick?.(item)
-  }
-
-  const handleCardKeyDown = (e: React.KeyboardEvent) => {
-    // Activate on Enter/Space like a button, but let nested buttons handle their own keys
-    if (e.key !== 'Enter' && e.key !== ' ') {
-      return
-    }
-    if ((e.target as HTMLElement).closest('button')) {
-      return
-    }
-    e.preventDefault()
-    onClick?.(item)
-  }
-
   return (
-    <div
-      tabIndex={0}
-      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow bg-white dark:bg-gray-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
-      onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-    >
+    <div className="relative border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md dark:hover:shadow-gray-900/50 transition-shadow bg-white dark:bg-gray-800 cursor-pointer">
+      {/* A real <button> stretched over the card opens its details. Using a
+          native button (keyboard-activatable for free, no role/tabIndex) avoids
+          the a11y lint conflict between role="button" on a div (nested-button
+          violation) and a bare tabIndex (non-interactive-tabIndex violation).
+          The action buttons below sit above it via z-index so they stay
+          independently clickable. */}
+      {onClick && (
+        <button
+          type="button"
+          onClick={() => onClick(item)}
+          aria-label={`View details for ${item.name}`}
+          className="absolute inset-0 z-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      )}
       {/* Item image or placeholder */}
       {item.image_url ? (
         <img
@@ -173,7 +162,7 @@ export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: I
       <div className="space-y-2">
         <div className="flex items-start justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1 mr-2">{item.name}</h3>
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="relative z-10 flex items-center space-x-2 flex-shrink-0">
             {onEdit && (
               <button
                 onClick={() => onEdit(item)}
@@ -324,7 +313,7 @@ export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: I
           <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setShowIngredients(!showIngredients)}
-              className="w-full flex items-center justify-between text-left text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+              className="relative z-10 w-full flex items-center justify-between text-left text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
             >
               <span>Ingredients</span>
               <svg
@@ -352,7 +341,7 @@ export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: I
           <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setShowNutrition(!showNutrition)}
-              className="w-full flex items-center justify-between text-left text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+              className="relative z-10 w-full flex items-center justify-between text-left text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
             >
               <span>Nutrition Info</span>
               <svg

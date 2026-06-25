@@ -269,7 +269,7 @@ describe('AddItemForm', () => {
     renderForm()
     const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
     fireEvent.change(input, { target: { value: 'beans' } })
-    fireEvent.keyPress(input, { key: 'Enter', code: 'Enter', charCode: 13 })
+    fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' })
     await waitFor(() => expect(mockSearch).toHaveBeenCalledWith('beans'))
   })
 

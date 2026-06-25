@@ -28,7 +28,7 @@ export default function ShoppingListPushModal({
   recipe,
   onClose,
   onPushed,
-}: ShoppingListPushModalProps) {
+}: Readonly<ShoppingListPushModalProps>) {
   const [lists, setLists] = useState<ShoppingList[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
