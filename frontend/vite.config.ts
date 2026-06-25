@@ -10,6 +10,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // The full suite (40+ files) runs in parallel worker threads; on CI's
+    // shared cores a normally-sub-second test (e.g. HouseholdSettings'
+    // multi-findBy save-error path) can occasionally cross the 5s default and
+    // time out. Give generous headroom so contention doesn't red the build —
+    // a genuinely hung test still fails, just later.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     coverage: {
       provider: 'v8',
       // lcovonly emits coverage/lcov.info (for SonarQube); html is for humans.
