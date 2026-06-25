@@ -18,6 +18,8 @@ from src.services.mealie_query_service import MealieQueryService
 
 router = APIRouter(prefix="/households/{household_id}/mealie", tags=["Mealie"])
 
+_NO_ACTIVE_CONNECTION = "No active Mealie connection is configured"
+
 
 @router.put("/connection", response_model=MealieConnectionResponse)
 async def configure_connection(
@@ -65,7 +67,7 @@ async def list_recipes(
     # Membership is enforced here; raises if the user isn't a member.
     conn = await conn_service.get(household_id, user_id)
     if not conn or not conn.is_active:
-        raise NotFoundError(message="No active Mealie connection is configured")
+        raise NotFoundError(message=_NO_ACTIVE_CONNECTION)
 
     client = MealieClientService(conn.base_url, decrypt_secret(conn.api_key_enc))
     recipes = await client.fetch_recipes_with_ingredients()
@@ -73,7 +75,7 @@ async def list_recipes(
     return RecipesResponse(recipes=annotated)
 
 
-@router.get("/shopping-lists", response_model=ShoppingListsResponse)
+@router.get("/shopping-lists")
 async def list_shopping_lists(
     household_id: int,
     user_id: CurrentUserId,
@@ -83,7 +85,7 @@ async def list_shopping_lists(
     conn_service = MealieConnectionService(db)
     conn = await conn_service.get(household_id, user_id)
     if not conn or not conn.is_active:
-        raise NotFoundError(message="No active Mealie connection is configured")
+        raise NotFoundError(message=_NO_ACTIVE_CONNECTION)
 
     client = MealieClientService(conn.base_url, decrypt_secret(conn.api_key_enc))
     lists = await client.list_shopping_lists()
@@ -105,7 +107,7 @@ async def push_to_shopping_list(
     conn_service = MealieConnectionService(db)
     conn = await conn_service.get(household_id, user_id)
     if not conn or not conn.is_active:
-        raise NotFoundError(message="No active Mealie connection is configured")
+        raise NotFoundError(message=_NO_ACTIVE_CONNECTION)
 
     client = MealieClientService(conn.base_url, decrypt_secret(conn.api_key_enc))
 

@@ -205,51 +205,36 @@ describe('InventoryItemCard', () => {
     expect(screen.getByText('Invalid nutrition data')).toBeInTheDocument()
   })
 
-  it('invokes onClick when the card body is clicked but not when a button is clicked', () => {
+  // The whole card is opened via a real <button> stretched over it (native
+  // keyboard support, no role/tabIndex). It carries an accessible label.
+  const getCardButton = (name: string) =>
+    screen.getByRole('button', { name: new RegExp(`view details for ${name}`, 'i') })
+
+  it('invokes onClick when the card action is activated', () => {
+    const onClick = vi.fn()
+    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={onClick} />)
+    fireEvent.click(getCardButton('Milk'))
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not invoke onClick when an action button is clicked', () => {
     const onClick = vi.fn()
     const onEdit = vi.fn()
     render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={onClick} onEdit={onEdit} />)
-    fireEvent.click(screen.getByText('Milk'))
-    expect(onClick).toHaveBeenCalledTimes(1)
     fireEvent.click(screen.getByTitle('Edit item'))
-    expect(onClick).toHaveBeenCalledTimes(1) // button click is ignored by handleCardClick
-  })
-
-  it('tolerates a card click with no onClick handler', () => {
-    render(<InventoryItemCard item={item({ name: 'Milk' })} />)
-    expect(() => fireEvent.click(screen.getByText('Milk'))).not.toThrow()
-  })
-
-  // The card itself is the focusable element (tabIndex 0); it's the nearest
-  // tabbable ancestor of the item name.
-  const getCard = (name: string) =>
-    screen.getByText(name).closest('[tabindex="0"]') as HTMLElement
-
-  it('makes the card focusable for keyboard users', () => {
-    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={vi.fn()} />)
-    expect(getCard('Milk')).toHaveAttribute('tabindex', '0')
-  })
-
-  it('activates on Enter and Space, but not other keys', () => {
-    const onClick = vi.fn()
-    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={onClick} />)
-    const card = getCard('Milk')
-    fireEvent.keyDown(card, { key: 'Enter' })
-    fireEvent.keyDown(card, { key: ' ' })
-    expect(onClick).toHaveBeenCalledTimes(2)
-    fireEvent.keyDown(card, { key: 'a' })
-    expect(onClick).toHaveBeenCalledTimes(2)
-  })
-
-  it('ignores keyboard activation that originates from a nested button', () => {
-    const onClick = vi.fn()
-    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={onClick} onEdit={vi.fn()} />)
-    fireEvent.keyDown(screen.getByTitle('Edit item'), { key: 'Enter' })
+    expect(onEdit).toHaveBeenCalledTimes(1)
     expect(onClick).not.toHaveBeenCalled()
   })
 
-  it('tolerates keyboard activation with no onClick handler', () => {
+  it('exposes an accessible label on the card action', () => {
+    render(<InventoryItemCard item={item({ name: 'Milk' })} onClick={vi.fn()} />)
+    expect(getCardButton('Milk')).toBeInTheDocument()
+  })
+
+  it('renders no card action button without an onClick handler', () => {
     render(<InventoryItemCard item={item({ name: 'Milk' })} />)
-    expect(() => fireEvent.keyDown(getCard('Milk'), { key: 'Enter' })).not.toThrow()
+    expect(
+      screen.queryByRole('button', { name: /view details for milk/i })
+    ).not.toBeInTheDocument()
   })
 })

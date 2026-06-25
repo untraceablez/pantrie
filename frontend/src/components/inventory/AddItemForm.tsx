@@ -522,7 +522,7 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
               className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   handleProductSearch()
