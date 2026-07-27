@@ -174,12 +174,28 @@ describe('barcode service', () => {
     expect(mockApi.get).toHaveBeenCalledWith('/barcode/555')
   })
 
-  it('searches products by name', async () => {
+  it('searches products by name, grouped by source', async () => {
     const mod = await import('./barcode')
-    mockApi.get.mockResolvedValue(data({ results: [{ barcode: '1', name: 'X' }], search_url: 'u' }))
+    mockApi.get.mockResolvedValue(
+      data({
+        groups: [{ source: 'off', label: 'Open Food Facts', results: [{ id: '1', name: 'X' }], search_url: 'u' }],
+        results: [{ barcode: '1', name: 'X' }],
+        search_url: 'u',
+      })
+    )
     const res = await mod.searchProducts('peanut')
-    expect(res.results[0].barcode).toBe('1')
+    expect(res.groups[0].source).toBe('off')
+    expect(res.groups[0].results[0].id).toBe('1')
     expect(mockApi.get).toHaveBeenCalledWith('/barcode/search', { params: { q: 'peanut', limit: 3 } })
+  })
+
+  it('looks a product up in the source it came from', async () => {
+    const mod = await import('./barcode')
+    mockApi.get.mockResolvedValue(data({ name: 'Peanuts, Raw' }))
+    expect(await mod.lookupProduct('usda', '999')).toEqual({ name: 'Peanuts, Raw' })
+    expect(mockApi.get).toHaveBeenCalledWith('/barcode/product', {
+      params: { source: 'usda', id: '999' },
+    })
   })
 })
 
