@@ -8,6 +8,14 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './tests/setup.ts',
+    // Must stay ABOVE the asyncUtilTimeout in tests/setup.ts (15s). Vitest kills
+    // the test at testTimeout regardless of what findBy*/waitFor are willing to
+    // wait for, so a lower value here silently caps that budget: with the 5s
+    // default, HouseholdSettings' multi-findBy save-error path died at 5s under
+    // CI parallel load and red-ed the build. A genuinely hung test still fails,
+    // just later.
+    testTimeout: 20000,
+    hookTimeout: 20000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
