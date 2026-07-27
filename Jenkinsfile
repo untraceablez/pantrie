@@ -99,27 +99,55 @@ PY
       }
     }
 
-    stage('SonarQube analysis') {
+    // Analysis and the gate check live in ONE stage because they retry together.
+    //
+    // Every build -- main, branch and PR -- analyses into the single `pantrie`
+    // project: isolating them with sonar.branch.name requires Developer Edition
+    // and this server is Community Build (verified: the scanner rejects the
+    // property outright). So two builds that submit in the same second collide,
+    // and SonarQube fails the compute-engine task for the loser with
+    //
+    //   Date of analysis cannot be older than the date of the last known
+    //   analysis on this project. It's only possible to rebuild the past in
+    //   chronological order.
+    //
+    // That is a scheduling collision, not a quality problem -- it red-ed main
+    // build 20 while a branch build scanned alongside it. Re-scanning gets a
+    // fresh timestamp and succeeds.
+    //
+    // A lock() around the stage would be the cleaner fix, but the Lockable
+    // Resources plugin is not installed on this controller. If it is ever added,
+    // prefer wrapping this stage in lock('sonar-pantrie') and dropping retry().
+    stage('SonarQube analysis + Quality Gate') {
       steps {
-        container('node') {
-          withSonarQubeEnv('SonarQube') {
-            // @sonar/scan reads sonar-project.properties (repo root) and the
-            // SONARQUBE_SCANNER_PARAMS / SONAR_HOST_URL + SONAR_TOKEN that
-            // withSonarQubeEnv injects. Runs on glibc Node 20 so the JS/TS
-            // analyzer bridge starts; report-task.txt lands in .scannerwork
-            // for the Quality Gate stage.
-            sh 'npx --yes @sonar/scan'
-          }
-        }
-      }
-    }
+        script {
+          def qualityGate = null
 
-    stage('Quality Gate') {
-      steps {
-        // Requires the SonarQube -> Jenkins webhook; remove or set
-        // abortPipeline:false for the very first run if the webhook isn't set yet.
-        timeout(time: 5, unit: 'MINUTES') {
-          waitForQualityGate abortPipeline: true
+          // Only the collision path retries. waitForQualityGate throws when the
+          // compute-engine task itself fails, which is what we want to re-run;
+          // with abortPipeline:false a genuine ERROR gate returns normally
+          // instead, so it falls through to the check below and fails fast
+          // rather than paying for a second full scan.
+          retry(2) {
+            container('node') {
+              withSonarQubeEnv('SonarQube') {
+                // @sonar/scan reads sonar-project.properties (repo root) and the
+                // SONARQUBE_SCANNER_PARAMS / SONAR_HOST_URL + SONAR_TOKEN that
+                // withSonarQubeEnv injects. Runs on glibc Node 20 so the JS/TS
+                // analyzer bridge starts; report-task.txt lands in .scannerwork
+                // for the gate check.
+                sh 'npx --yes @sonar/scan'
+              }
+            }
+            // Requires the SonarQube -> Jenkins webhook.
+            timeout(time: 5, unit: 'MINUTES') {
+              qualityGate = waitForQualityGate abortPipeline: false
+            }
+          }
+
+          if (qualityGate?.status != 'OK') {
+            error "Quality gate failed: ${qualityGate?.status ?: 'no status returned'}"
+          }
         }
       }
     }
