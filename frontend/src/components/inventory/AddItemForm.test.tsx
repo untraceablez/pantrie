@@ -8,7 +8,11 @@ import * as locationSvc from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
 
 vi.mock('@/services/inventory', () => ({ createItem: vi.fn() }))
-vi.mock('@/services/barcode', () => ({ lookupBarcode: vi.fn(), searchProducts: vi.fn() }))
+vi.mock('@/services/barcode', () => ({
+  lookupBarcode: vi.fn(),
+  lookupProduct: vi.fn(),
+  searchProducts: vi.fn(),
+}))
 vi.mock('@/services/household', () => ({ listHouseholds: vi.fn(), createHousehold: vi.fn() }))
 vi.mock('@/services/location', () => ({ listHouseholdLocations: vi.fn() }))
 vi.mock('@/store/authStore', () => ({ useAuthStore: vi.fn() }))
@@ -25,6 +29,7 @@ vi.mock('@/components/barcode/BarcodeScanner', () => ({
 
 const mockCreateItem = vi.mocked(inventorySvc.createItem)
 const mockLookup = vi.mocked(barcodeSvc.lookupBarcode)
+const mockLookupProduct = vi.mocked(barcodeSvc.lookupProduct)
 const mockSearch = vi.mocked(barcodeSvc.searchProducts)
 const mockListHouseholds = vi.mocked(householdSvc.listHouseholds)
 const mockCreateHousehold = vi.mocked(householdSvc.createHousehold)
@@ -46,6 +51,7 @@ const product = (over: Partial<barcodeSvc.ProductInfo> = {}): barcodeSvc.Product
     ingredients: null,
     allergens: null,
     nutrition_grade: null,
+    nutrition_facts: null,
     labels: [],
     stores: null,
     countries: null,
@@ -53,6 +59,36 @@ const product = (over: Partial<barcodeSvc.ProductInfo> = {}): barcodeSvc.Product
     source_url: '',
     ...over,
   }) as barcodeSvc.ProductInfo
+
+const suggestion = (
+  over: Partial<barcodeSvc.ProductSuggestion> = {}
+): barcodeSvc.ProductSuggestion => ({
+  source: 'off',
+  source_label: 'Open Food Facts',
+  id: '111',
+  barcode: '111',
+  name: 'Organic Peanut Butter',
+  brand: 'Acme',
+  image_url: 'http://x/p.png',
+  ...over,
+})
+
+const group = (
+  over: Partial<barcodeSvc.ProductSearchGroup> = {}
+): barcodeSvc.ProductSearchGroup => ({
+  source: 'off',
+  label: 'Open Food Facts',
+  results: [suggestion()],
+  search_url: 'http://off/search?q=peanut',
+  ...over,
+})
+
+/** A search result with no hits from any source. */
+const noHits = (search_url = 'http://off/search'): barcodeSvc.ProductSearchResult => ({
+  groups: [],
+  results: [],
+  search_url,
+})
 
 const imgFile = (over: { type?: string; size?: number } = {}) => {
   const f = new File(['data'], 'photo.png', { type: over.type ?? 'image/png' })
@@ -71,7 +107,7 @@ describe('AddItemForm', () => {
     mockListHouseholds.mockResolvedValue([household()])
     mockListLocations.mockResolvedValue([])
     mockCreateItem.mockResolvedValue({} as inventorySvc.InventoryItem)
-    mockSearch.mockResolvedValue({ results: [], search_url: 'http://off/search' })
+    mockSearch.mockResolvedValue(noHits())
   })
 
   it('loads households and defaults to the first', async () => {
@@ -242,13 +278,18 @@ describe('AddItemForm', () => {
 
   it('searches by product name and fills the form from a chosen suggestion', async () => {
     mockSearch.mockResolvedValue({
-      results: [
-        { barcode: '111', name: 'Organic Peanut Butter', brand: 'Acme', image_url: 'http://x/p.png' },
-        { barcode: '222', name: 'Peanut Butter Lite', brand: null, image_url: null },
+      groups: [
+        group({
+          results: [
+            suggestion(),
+            suggestion({ id: '222', barcode: '222', name: 'Peanut Butter Lite', brand: null, image_url: null }),
+          ],
+        }),
       ],
+      results: [],
       search_url: 'http://off/search?q=peanut',
     })
-    mockLookup.mockResolvedValue(product({ name: 'Organic Peanut Butter' }))
+    mockLookupProduct.mockResolvedValue(product({ name: 'Organic Peanut Butter' }))
     renderForm()
 
     const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
@@ -256,16 +297,97 @@ describe('AddItemForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
 
     await waitFor(() => expect(mockSearch).toHaveBeenCalledWith('peanut butter'))
-    const suggestion = await screen.findByText('Organic Peanut Butter')
-    fireEvent.click(suggestion)
+    fireEvent.click(await screen.findByText('Organic Peanut Butter'))
 
-    // Choosing a suggestion looks the product up by its barcode and fills the form.
-    await waitFor(() => expect(mockLookup).toHaveBeenCalledWith('111'))
+    // Choosing a suggestion looks it up in the source it came from, and fills the form.
+    await waitFor(() => expect(mockLookupProduct).toHaveBeenCalledWith('off', '111'))
     expect((screen.getByLabelText('Item Name *') as HTMLInputElement).value).toBe('Organic Peanut Butter')
+    // A suggestion with a barcode also populates the barcode field.
+    expect(
+      (screen.getByPlaceholderText('Enter or scan barcode here') as HTMLInputElement).value
+    ).toBe('111')
+  })
+
+  it('groups suggestions by source, each with its own see-more link', async () => {
+    mockSearch.mockResolvedValue({
+      groups: [
+        group(),
+        group({
+          source: 'usda',
+          label: 'USDA FoodData Central',
+          results: [
+            suggestion({
+              source: 'usda',
+              source_label: 'USDA FoodData Central',
+              id: '999',
+              barcode: null,
+              name: 'Peanuts, Raw',
+              brand: null,
+              image_url: null,
+            }),
+          ],
+          search_url: 'http://fdc/search?q=peanut',
+        }),
+      ],
+      results: [],
+      search_url: 'http://off/search?q=peanut',
+    })
+    renderForm()
+
+    const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
+    fireEvent.change(input, { target: { value: 'peanut' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    // Each source gets a heading and a link pointing at that source's results.
+    expect(await screen.findByText('Open Food Facts')).toBeInTheDocument()
+    expect(screen.getByText('USDA FoodData Central')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: /See more results on Open Food Facts/ })
+    ).toHaveAttribute('href', 'http://off/search?q=peanut')
+    expect(
+      screen.getByRole('link', { name: /See more results on USDA FoodData Central/ })
+    ).toHaveAttribute('href', 'http://fdc/search?q=peanut')
+    // The generic no-matches fallback stays hidden while there are hits.
+    expect(screen.queryByText(/No quick matches/)).not.toBeInTheDocument()
+  })
+
+  it('leaves the barcode field empty for a suggestion that has no barcode', async () => {
+    mockSearch.mockResolvedValue({
+      groups: [
+        group({
+          source: 'usda',
+          label: 'USDA FoodData Central',
+          results: [
+            suggestion({
+              source: 'usda',
+              id: '999',
+              barcode: null,
+              name: 'Peanuts, Raw',
+              image_url: null,
+            }),
+          ],
+        }),
+      ],
+      results: [],
+      search_url: 'http://off/search',
+    })
+    mockLookupProduct.mockResolvedValue(product({ name: 'Peanuts, Raw' }))
+    renderForm()
+
+    const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
+    fireEvent.change(input, { target: { value: 'peanuts' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(await screen.findByText('Peanuts, Raw'))
+
+    await waitFor(() => expect(mockLookupProduct).toHaveBeenCalledWith('usda', '999'))
+    expect(
+      (screen.getByPlaceholderText('Enter or scan barcode here') as HTMLInputElement).value
+    ).toBe('')
+    expect((screen.getByLabelText('Item Name *') as HTMLInputElement).value).toBe('Peanuts, Raw')
   })
 
   it('searches via the Enter key', async () => {
-    mockSearch.mockResolvedValue({ results: [], search_url: 'http://off/s' })
+    mockSearch.mockResolvedValue(noHits('http://off/s'))
     renderForm()
     const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
     fireEvent.change(input, { target: { value: 'beans' } })
@@ -274,7 +396,7 @@ describe('AddItemForm', () => {
   })
 
   it('shows the no-matches state with a link to full results', async () => {
-    mockSearch.mockResolvedValue({ results: [], search_url: 'http://off/search?q=zzz' })
+    mockSearch.mockResolvedValue(noHits('http://off/search?q=zzz'))
     renderForm()
     const input = await screen.findByPlaceholderText('e.g. organic peanut butter')
     fireEvent.change(input, { target: { value: 'zzz' } })
