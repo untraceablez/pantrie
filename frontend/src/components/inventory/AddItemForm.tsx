@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { createItem } from '@/services/inventory'
-import { lookupBarcode, searchProducts, type ProductSuggestion } from '@/services/barcode'
+import {
+  lookupBarcode,
+  lookupProduct,
+  searchProducts,
+  type ProductInfo,
+  type ProductSearchGroup,
+  type ProductSuggestion,
+} from '@/services/barcode'
 import { listHouseholds, createHousehold, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
@@ -46,7 +53,7 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
   const [productFound, setProductFound] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
-  const [suggestions, setSuggestions] = useState<ProductSuggestion[]>([])
+  const [searchGroups, setSearchGroups] = useState<ProductSearchGroup[]>([])
   const [searchUrl, setSearchUrl] = useState('')
   const [searched, setSearched] = useState(false)
   const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
@@ -166,51 +173,46 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
     }
   }
 
-  const lookupBarcodeData = async (scannedBarcode: string) => {
+  const applyProductInfo = (productInfo: ProductInfo) => {
+    // Populate form fields with product information
+    setName(productInfo.name || '')
+    setDescription(productInfo.description || '')
+    setBrand(productInfo.brand || '')
+
+    // Set image URL if available from external database
+    if (productInfo.image_url) {
+      setImageUrl(productInfo.image_url)
+      setImagePreview(productInfo.image_url)
+      // Clear any uploaded file since we have an external URL
+      setImageFile(null)
+    }
+
+    // Set ingredients if available
+    if (productInfo.ingredients) {
+      setIngredients(productInfo.ingredients)
+    }
+
+    // Set nutritional info if available (store as JSON string)
+    if (productInfo.nutrition_grade || productInfo.serving_size || productInfo.nutrition_facts) {
+      setNutritionalInfo(
+        JSON.stringify({
+          nutrition_grade: productInfo.nutrition_grade,
+          serving_size: productInfo.serving_size,
+          allergens: productInfo.allergens,
+          nutrition_facts: productInfo.nutrition_facts,
+        })
+      )
+    }
+  }
+
+  /** Shared lookup flow: a barcode scan and a picked suggestion differ only in how the product is fetched. */
+  const runLookup = async (fetchProduct: () => Promise<ProductInfo>) => {
     setLookingUp(true)
     setError('')
     setProductFound(false)
 
     try {
-      const productInfo = await lookupBarcode(scannedBarcode)
-
-      // Debug logging
-      console.log('Barcode lookup response:', productInfo)
-      console.log('Ingredients:', productInfo.ingredients)
-      console.log('Nutrition grade:', productInfo.nutrition_grade)
-      console.log('Serving size:', productInfo.serving_size)
-      console.log('Allergens:', productInfo.allergens)
-
-      // Populate form fields with product information
-      setName(productInfo.name || '')
-      setDescription(productInfo.description || '')
-      setBrand(productInfo.brand || '')
-
-      // Set image URL if available from external database
-      if (productInfo.image_url) {
-        setImageUrl(productInfo.image_url)
-        setImagePreview(productInfo.image_url)
-        // Clear any uploaded file since we have an external URL
-        setImageFile(null)
-      }
-
-      // Set ingredients if available
-      if (productInfo.ingredients) {
-        console.log('Setting ingredients:', productInfo.ingredients)
-        setIngredients(productInfo.ingredients)
-      }
-
-      // Set nutritional info if available (store as JSON string)
-      if (productInfo.nutrition_grade || productInfo.serving_size || productInfo.nutrition_facts) {
-        const nutritionData = {
-          nutrition_grade: productInfo.nutrition_grade,
-          serving_size: productInfo.serving_size,
-          allergens: productInfo.allergens,
-          nutrition_facts: productInfo.nutrition_facts,
-        }
-        console.log('Setting nutritional info:', nutritionData)
-        setNutritionalInfo(JSON.stringify(nutritionData))
-      }
+      applyProductInfo(await fetchProduct())
 
       // Show success message
       setProductFound(true)
@@ -227,6 +229,9 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
       setLookingUp(false)
     }
   }
+
+  const lookupBarcodeData = async (scannedBarcode: string) =>
+    runLookup(() => lookupBarcode(scannedBarcode))
 
   const handleBarcodeScanned = async (scannedBarcode: string) => {
     setShowScanner(false)
@@ -247,7 +252,7 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
       setSearching(true)
       setError('')
       const data = await searchProducts(query)
-      setSuggestions(data.results)
+      setSearchGroups(data.groups)
       setSearchUrl(data.search_url)
       setSearched(true)
     } catch (err) {
@@ -259,10 +264,14 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
   }
 
   const handleSelectSuggestion = async (suggestion: ProductSuggestion) => {
-    setBarcode(suggestion.barcode)
-    setSuggestions([])
+    // Generic USDA foods have no barcode, so leave the field alone for those.
+    if (suggestion.barcode) {
+      setBarcode(suggestion.barcode)
+    }
+    setSearchGroups([])
     setSearched(false)
-    await lookupBarcodeData(suggestion.barcode)
+    // The source travels with the suggestion: USDA is keyed by FDC id, not barcode.
+    await runLookup(() => lookupProduct(suggestion.source, suggestion.id))
   }
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -511,7 +520,7 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
               Search by Product Name (Optional)
             </h3>
             <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-              No barcode? Search Open Food Facts and pick a result to fill in the details
+              No barcode? Search open product databases and pick a result to fill in the details
             </p>
           </div>
 
@@ -539,38 +548,53 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
             </button>
           </div>
 
-          {/* Suggestions */}
-          {suggestions.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {suggestions.map((s) => (
-                <li key={s.barcode}>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectSuggestion(s)}
-                    disabled={lookingUp}
-                    className="w-full flex items-center gap-3 p-2 text-left bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-purple-50 dark:hover:bg-gray-600 disabled:opacity-50"
-                  >
-                    {s.image_url ? (
-                      <img src={s.image_url} alt={s.name} className="w-10 h-10 object-cover rounded" />
-                    ) : (
-                      <div className="w-10 h-10 rounded bg-gray-100 dark:bg-gray-600 flex-shrink-0" />
-                    )}
-                    <span className="min-w-0">
-                      <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">{s.name}</span>
-                      {s.brand && (
-                        <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{s.brand}</span>
+          {/* Suggestions, grouped by the database they came from */}
+          {searchGroups.map((group) => (
+            <div key={group.source} className="mt-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-purple-800 dark:text-purple-300">
+                {group.label}
+              </h4>
+              <ul className="mt-1 space-y-2">
+                {group.results.map((s) => (
+                  <li key={`${s.source}-${s.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleSelectSuggestion(s)}
+                      disabled={lookingUp}
+                      className="w-full flex items-center gap-3 p-2 text-left bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md hover:bg-purple-50 dark:hover:bg-gray-600 disabled:opacity-50"
+                    >
+                      {s.image_url ? (
+                        <img src={s.image_url} alt={s.name} className="w-10 h-10 object-cover rounded" />
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-gray-100 dark:bg-gray-600 flex-shrink-0" />
                       )}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-gray-900 dark:text-white truncate">{s.name}</span>
+                        {s.brand && (
+                          <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{s.brand}</span>
+                        )}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-purple-700 dark:text-purple-300">
+                <a
+                  href={group.search_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline hover:no-underline"
+                >
+                  See more results on {group.label} →
+                </a>
+              </p>
+            </div>
+          ))}
 
-          {/* Empty state + link to full results */}
-          {searched && (
+          {/* Empty state: no source matched, so fall back to the Open Food Facts link */}
+          {searched && searchGroups.length === 0 && (
             <p className="mt-3 text-xs text-purple-700 dark:text-purple-300">
-              {suggestions.length === 0 && 'No quick matches. '}
+              No quick matches.{' '}
               <a
                 href={searchUrl}
                 target="_blank"
