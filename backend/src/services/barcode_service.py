@@ -33,6 +33,30 @@ USER_AGENT = "Pantrie/0.1 (https://github.com/untraceablez/pantrie)"
 
 REQUEST_TIMEOUT = 10.0
 
+# Open Food Facts nutriment prefixes -> the keys used by our nutrition_facts
+# payload. Each is looked up as "<prefix>_serving", then "<prefix>_100g", then
+# the bare prefix, so per-serving values win over per-100g ones.
+_OFF_NUTRIMENT_MAP = {
+    "energy-kcal": "calories",
+    "fat": "total_fat",
+    "saturated-fat": "saturated_fat",
+    "trans-fat": "trans_fat",
+    "cholesterol": "cholesterol",
+    "sodium": "sodium",
+    "carbohydrates": "total_carbohydrate",
+    "fiber": "dietary_fiber",
+    "sugars": "total_sugars",
+    "added-sugars": "added_sugars",
+    "proteins": "protein",
+    # Vitamins and minerals
+    "vitamin-d": "vitamin_d",
+    "calcium": "calcium",
+    "iron": "iron",
+    "potassium": "potassium",
+    "vitamin-a": "vitamin_a",
+    "vitamin-c": "vitamin_c",
+}
+
 # USDA nutrient names -> the keys used by our nutrition_facts payload.
 _USDA_NUTRIENT_MAP = {
     "Energy": "calories",
@@ -60,6 +84,42 @@ def _joined(value: Any) -> str | None:
     if isinstance(value, list):
         value = ", ".join(str(v) for v in value if v)
     return str(value) if value else None
+
+
+def _off_nutrition_facts(
+    product: dict[str, Any], nutriments: dict[str, Any]
+) -> dict[str, Any]:
+    """Build nutrition facts from Open Food Facts nutriments, dropping empties."""
+    facts: dict[str, Any] = {
+        "serving_size": product.get("serving_size") or None,
+        "servings_per_container": product.get("servings_per_container") or None,
+    }
+    for prefix, key in _OFF_NUTRIMENT_MAP.items():
+        facts[key] = (
+            nutriments.get(f"{prefix}_serving")
+            or nutriments.get(f"{prefix}_100g")
+            or nutriments.get(prefix)
+            or None
+        )
+    return {k: v for k, v in facts.items() if v is not None}
+
+
+def _usda_nutrition_facts(food: dict[str, Any]) -> dict[str, Any]:
+    """Build nutrition facts from a USDA food's nutrient list."""
+    facts: dict[str, Any] = {}
+    for entry in food.get("foodNutrients") or []:
+        key = _USDA_NUTRIENT_MAP.get((entry.get("nutrient") or {}).get("name"))
+        amount = entry.get("amount")
+        if key and amount is not None:
+            facts[key] = amount
+    return facts
+
+
+def _usda_serving_size(food: dict[str, Any]) -> str | None:
+    """Join a USDA serving size and its unit, e.g. 32.0 + "g" -> "32.0g"."""
+    if not food.get("servingSize"):
+        return None
+    return f"{food['servingSize']}{food.get('servingSizeUnit') or ''}".strip()
 
 
 def _empty_group(source: str, label: str, search_url: str) -> dict[str, Any]:
@@ -414,18 +474,10 @@ class BarcodeService:
 
     def _parse_usda_product(self, food: dict[str, Any]) -> dict[str, Any]:
         """Parse a USDA FoodData Central food into our product format."""
-        nutrition_facts: dict[str, Any] = {}
-        for entry in food.get("foodNutrients") or []:
-            nutrient = entry.get("nutrient") or {}
-            key = _USDA_NUTRIENT_MAP.get(nutrient.get("name"))
-            amount = entry.get("amount")
-            if key and amount is not None:
-                nutrition_facts[key] = amount
+        nutrition_facts = _usda_nutrition_facts(food)
 
-        serving_size = None
-        if food.get("servingSize"):
-            unit = food.get("servingSizeUnit") or ""
-            serving_size = f"{food['servingSize']}{unit}".strip()
+        serving_size = _usda_serving_size(food)
+        if serving_size:
             nutrition_facts["serving_size"] = serving_size
 
         category = food.get("foodCategory")
@@ -476,32 +528,7 @@ class BarcodeService:
 
         # Parse detailed nutrition facts if available
         # Prioritize per-serving values, fall back to per-100g values
-        nutrition_facts = None
-        if nutriments:
-            nutrition_facts = {
-                "serving_size": product.get("serving_size") or None,
-                "servings_per_container": product.get("servings_per_container") or None,
-                "calories": nutriments.get("energy-kcal_serving") or nutriments.get("energy-kcal_100g") or nutriments.get("energy-kcal") or None,
-                "total_fat": nutriments.get("fat_serving") or nutriments.get("fat_100g") or nutriments.get("fat") or None,
-                "saturated_fat": nutriments.get("saturated-fat_serving") or nutriments.get("saturated-fat_100g") or nutriments.get("saturated-fat") or None,
-                "trans_fat": nutriments.get("trans-fat_serving") or nutriments.get("trans-fat_100g") or nutriments.get("trans-fat") or None,
-                "cholesterol": nutriments.get("cholesterol_serving") or nutriments.get("cholesterol_100g") or nutriments.get("cholesterol") or None,
-                "sodium": nutriments.get("sodium_serving") or nutriments.get("sodium_100g") or nutriments.get("sodium") or None,
-                "total_carbohydrate": nutriments.get("carbohydrates_serving") or nutriments.get("carbohydrates_100g") or nutriments.get("carbohydrates") or None,
-                "dietary_fiber": nutriments.get("fiber_serving") or nutriments.get("fiber_100g") or nutriments.get("fiber") or None,
-                "total_sugars": nutriments.get("sugars_serving") or nutriments.get("sugars_100g") or nutriments.get("sugars") or None,
-                "added_sugars": nutriments.get("added-sugars_serving") or nutriments.get("added-sugars_100g") or nutriments.get("added-sugars") or None,
-                "protein": nutriments.get("proteins_serving") or nutriments.get("proteins_100g") or nutriments.get("proteins") or None,
-                # Vitamins and minerals
-                "vitamin_d": nutriments.get("vitamin-d_serving") or nutriments.get("vitamin-d_100g") or nutriments.get("vitamin-d") or None,
-                "calcium": nutriments.get("calcium_serving") or nutriments.get("calcium_100g") or nutriments.get("calcium") or None,
-                "iron": nutriments.get("iron_serving") or nutriments.get("iron_100g") or nutriments.get("iron") or None,
-                "potassium": nutriments.get("potassium_serving") or nutriments.get("potassium_100g") or nutriments.get("potassium") or None,
-                "vitamin_a": nutriments.get("vitamin-a_serving") or nutriments.get("vitamin-a_100g") or nutriments.get("vitamin-a") or None,
-                "vitamin_c": nutriments.get("vitamin-c_serving") or nutriments.get("vitamin-c_100g") or nutriments.get("vitamin-c") or None,
-            }
-            # Remove None values
-            nutrition_facts = {k: v for k, v in nutrition_facts.items() if v is not None}
+        nutrition_facts = _off_nutrition_facts(product, nutriments) if nutriments else None
 
         return {
             "name": product.get("product_name") or product.get("generic_name") or "Unknown Product",
