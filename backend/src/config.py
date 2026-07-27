@@ -74,6 +74,11 @@ class Settings(BaseSettings):
 
     # External APIs
     OPEN_FOOD_FACTS_API_URL: str = "https://world.openfoodfacts.org/api/v2"
+    # USDA FoodData Central covers generic/whole foods that the barcode-keyed
+    # Open Food Facts databases do not carry. DEMO_KEY works but is rate limited
+    # to ~30 requests/hour/IP; get a free key at https://fdc.nal.usda.gov/api-key-signup
+    # Set to an empty string to drop USDA from product search entirely.
+    USDA_FDC_API_KEY: str = "DEMO_KEY"
     GOOGLE_VISION_API_KEY: str | None = None
     MEALIE_API_URL: str | None = None
     MEALIE_API_KEY: str | None = None
