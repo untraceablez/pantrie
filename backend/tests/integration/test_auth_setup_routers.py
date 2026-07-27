@@ -139,11 +139,23 @@ async def test_barcode_lookup_not_found(async_client: AsyncClient, monkeypatch):
 
 async def test_barcode_search_returns_suggestions(async_client: AsyncClient, monkeypatch):
     import httpx
-    payload = {"products": [{"code": "555", "product_name": "Beans", "brands": "Acme"}]}
-    _patch_barcode(monkeypatch, lambda r: httpx.Response(200, json=payload))
+    # Search-a-licious (Open Food Facts) keys hits under "hits"; the sibling
+    # databases' CGI search keys them under "products".
+    def handler(request):
+        key = "hits" if request.url.host == "search.openfoodfacts.org" else "products"
+        return httpx.Response(
+            200,
+            json={key: [{"code": "555", "product_name": "Beans", "brands": "Acme"}]},
+        )
+
+    _patch_barcode(monkeypatch, handler)
     resp = await async_client.get(f"{API}/barcode/search", params={"q": "beans"})
     assert resp.status_code == 200, resp.text
     body = resp.json()
+    assert body["groups"][0]["source"] == "off"
+    assert body["groups"][0]["results"][0]["barcode"] == "555"
+    assert body["groups"][0]["search_url"]
+    # Flat view retained for older clients.
     assert body["results"][0]["barcode"] == "555"
     assert body["search_url"]
 
@@ -152,6 +164,34 @@ async def test_barcode_search_requires_a_query(async_client: AsyncClient):
     # Too-short query fails validation (min_length=2).
     resp = await async_client.get(f"{API}/barcode/search", params={"q": "a"})
     assert resp.status_code == 422
+
+
+async def test_barcode_product_lookup_by_source(async_client: AsyncClient, monkeypatch):
+    import httpx
+    payload = {"status": 1, "product": {"product_name": "Shampoo", "code": "42"}}
+    _patch_barcode(monkeypatch, lambda r: httpx.Response(200, json=payload))
+    resp = await async_client.get(
+        f"{API}/barcode/product", params={"source": "obf", "id": "42"}
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["source"] == "Open Beauty Facts"
+
+
+async def test_barcode_product_not_found(async_client: AsyncClient, monkeypatch):
+    import httpx
+    _patch_barcode(monkeypatch, lambda r: httpx.Response(200, json={"status": 0}))
+    resp = await async_client.get(
+        f"{API}/barcode/product", params={"source": "off", "id": "000"}
+    )
+    assert resp.status_code == 404
+
+
+async def test_barcode_product_rejects_unknown_source(async_client: AsyncClient):
+    resp = await async_client.get(
+        f"{API}/barcode/product", params={"source": "myspace", "id": "1"}
+    )
+    assert resp.status_code == 400
+    assert "off" in resp.json()["details"]["supported"]
 
 
 # =========================================================================== #
