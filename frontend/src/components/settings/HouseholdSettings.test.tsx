@@ -111,7 +111,11 @@ describe('HouseholdSettings', () => {
     mockList.mockResolvedValue([hh()])
     mockUpdate.mockRejectedValueOnce({ response: { data: { error: 'name taken' } } })
     render(<HouseholdSettings />)
-    await screen.findByText('Household Details')
+    // Wait for the *name* to populate, not just the heading: the heading renders
+    // as soon as loading flips, but a follow-up effect fills the name input. The
+    // input is `required`, so clicking Save in between is silently swallowed by
+    // form validation -- no submit handler, no error, and a 15s findBy timeout.
+    await screen.findByDisplayValue('Home')
 
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
     expect(await screen.findByText('name taken')).toBeInTheDocument()

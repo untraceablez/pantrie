@@ -1,31 +1,13 @@
-/// <reference types="vitest" />
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
 // https://vitejs.dev/config/
+// Test settings live in vitest.config.ts, NOT here: Vitest resolves
+// vitest.config.ts in preference to this file, so a `test` block here would be
+// dead config that looks authoritative.
 export default defineConfig({
   plugins: [react()],
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    // The full suite (40+ files) runs in parallel worker threads; on CI's
-    // shared cores a normally-sub-second test (e.g. HouseholdSettings'
-    // multi-findBy save-error path) can occasionally cross the 5s default and
-    // time out. Give generous headroom so contention doesn't red the build —
-    // a genuinely hung test still fails, just later.
-    testTimeout: 20000,
-    hookTimeout: 20000,
-    coverage: {
-      provider: 'v8',
-      // lcovonly emits coverage/lcov.info (for SonarQube); html is for humans.
-      reporter: ['text', 'html', 'lcovonly'],
-      reportsDirectory: './coverage',
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.d.ts', 'src/main.tsx', 'src/test/**'],
-    },
-  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
