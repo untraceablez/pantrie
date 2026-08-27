@@ -23,7 +23,7 @@ export default function AllergenWarning({
   label = 'Allergen warning',
   live = false,
   className = '',
-}: AllergenWarningProps) {
+}: Readonly<AllergenWarningProps>) {
   if (allergens.length === 0) return null
 
   return (
