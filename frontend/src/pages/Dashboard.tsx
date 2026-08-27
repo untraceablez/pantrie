@@ -52,7 +52,7 @@ function DashboardBody({
   summary,
   cards,
   navigate,
-}: DashboardBodyProps) {
+}: Readonly<DashboardBodyProps>) {
   if (loading) {
     return (
       <div className="text-center py-12">
