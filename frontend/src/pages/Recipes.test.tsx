@@ -152,6 +152,36 @@ describe('Recipes page', () => {
     expect(screen.queryByText('No recipes found in your Mealie instance.')).not.toBeInTheDocument()
   })
 
+  it('flags recipe ingredients that match a household allergen', async () => {
+    mockGetRecipes.mockResolvedValue({
+      recipes: [
+        recipe({
+          name: 'Pancakes',
+          allergen_ingredients: [
+            { ingredient: 'whole milk', allergens: ['milk'] },
+            { ingredient: 'butter', allergens: ['milk', 'dairy'] },
+          ],
+        }),
+      ],
+    })
+    render(<Recipes />)
+    expect(
+      await screen.findByText('Household allergens in this recipe:')
+    ).toBeInTheDocument()
+    expect(screen.getByText('whole milk:')).toBeInTheDocument()
+    expect(screen.getByText('butter:')).toBeInTheDocument()
+    expect(screen.getByText('milk, dairy')).toBeInTheDocument()
+  })
+
+  it('shows no allergen section when nothing is flagged', async () => {
+    mockGetRecipes.mockResolvedValue({ recipes: [recipe({ name: 'Toast' })] })
+    render(<Recipes />)
+    expect(await screen.findByText('Toast')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Household allergens in this recipe:')
+    ).not.toBeInTheDocument()
+  })
+
   it('navigates back to the dashboard and honors the dark logo', async () => {
     useThemeStore.setState({ resolvedTheme: 'dark' })
     render(<Recipes />)

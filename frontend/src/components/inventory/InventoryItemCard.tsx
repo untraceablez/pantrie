@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { type InventoryItem } from '@/services/inventory'
-import { listHouseholdAllergens, checkIngredientsForAllergens, type Allergen } from '@/services/allergen'
+import { useItemAllergenWarnings } from '@/hooks/useAllergenWarnings'
 
 interface InventoryItemCardProps {
   item: InventoryItem
@@ -12,32 +12,9 @@ interface InventoryItemCardProps {
 export default function InventoryItemCard({ item, onEdit, onDelete, onClick }: InventoryItemCardProps) {
   const [showIngredients, setShowIngredients] = useState(false)
   const [showNutrition, setShowNutrition] = useState(false)
-  const [householdAllergens, setHouseholdAllergens] = useState<Allergen[]>([])
-  const [matchedAllergens, setMatchedAllergens] = useState<string[]>([])
-
-  // Fetch household allergens and check for matches
-  useEffect(() => {
-    const fetchAndCheckAllergens = async () => {
-      try {
-        const allergens = await listHouseholdAllergens(item.household_id)
-        setHouseholdAllergens(allergens)
-
-        // Check if any household allergens match the ingredients
-        const matches = checkIngredientsForAllergens(item.ingredients, allergens)
-        setMatchedAllergens(matches)
-      } catch (err) {
-        console.error('Error fetching household allergens:', err)
-      }
-    }
-
-    fetchAndCheckAllergens()
-  }, [item.household_id, item.ingredients])
-
-  // Debug logging
-  console.log('Item card data:', item.name, {
-    ingredients: item.ingredients,
-    nutritional_info: item.nutritional_info,
-  })
+  // Matched by the backend against the household's declared allergens. Every
+  // card on the page shares one request for the whole household's matches.
+  const matchedAllergens = useItemAllergenWarnings(item.household_id, item.id)
 
   // Format quantity to remove unnecessary decimals
   const formatQuantity = (quantity: number): string => {

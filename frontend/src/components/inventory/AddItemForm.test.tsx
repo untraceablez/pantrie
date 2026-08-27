@@ -5,6 +5,7 @@ import * as inventorySvc from '@/services/inventory'
 import * as barcodeSvc from '@/services/barcode'
 import * as householdSvc from '@/services/household'
 import * as locationSvc from '@/services/location'
+import * as allergenHooks from '@/hooks/useAllergenWarnings'
 import { useAuthStore } from '@/store/authStore'
 
 vi.mock('@/services/inventory', () => ({ createItem: vi.fn() }))
@@ -16,6 +17,8 @@ vi.mock('@/services/barcode', () => ({
 vi.mock('@/services/household', () => ({ listHouseholds: vi.fn(), createHousehold: vi.fn() }))
 vi.mock('@/services/location', () => ({ listHouseholdLocations: vi.fn() }))
 vi.mock('@/store/authStore', () => ({ useAuthStore: vi.fn() }))
+// Allergen matching is the backend's job; the form only renders the result.
+vi.mock('@/hooks/useAllergenWarnings', () => ({ useTextAllergenWarnings: vi.fn() }))
 
 // Lightweight scanner stub exposing the scan/close callbacks as buttons.
 vi.mock('@/components/barcode/BarcodeScanner', () => ({
@@ -35,6 +38,7 @@ const mockListHouseholds = vi.mocked(householdSvc.listHouseholds)
 const mockCreateHousehold = vi.mocked(householdSvc.createHousehold)
 const mockListLocations = vi.mocked(locationSvc.listHouseholdLocations)
 const mockAuth = vi.mocked(useAuthStore)
+const mockAllergenWarnings = vi.mocked(allergenHooks.useTextAllergenWarnings)
 
 const household = (over: Partial<householdSvc.HouseholdWithRole> = {}): householdSvc.HouseholdWithRole =>
   ({ id: 1, name: 'Home', user_role: 'admin', ...over }) as householdSvc.HouseholdWithRole
@@ -108,6 +112,41 @@ describe('AddItemForm', () => {
     mockListLocations.mockResolvedValue([])
     mockCreateItem.mockResolvedValue({} as inventorySvc.InventoryItem)
     mockSearch.mockResolvedValue(noHits())
+    mockAllergenWarnings.mockReturnValue([])
+  })
+
+  it('lets ingredients be typed in for a manual add and submits them', async () => {
+    renderForm()
+    fireEvent.change(await screen.findByLabelText('Item Name *'), {
+      target: { value: 'Cookies' },
+    })
+    fireEvent.change(screen.getByLabelText('Ingredients'), {
+      target: { value: 'Wheat flour, whole milk' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add Item' }))
+    await waitFor(() =>
+      expect(mockCreateItem).toHaveBeenCalledWith(
+        expect.objectContaining({ ingredients: 'Wheat flour, whole milk' })
+      )
+    )
+  })
+
+  it('warns when the entered ingredients match a household allergen', async () => {
+    mockAllergenWarnings.mockReturnValue(['peanuts'])
+    renderForm()
+    fireEvent.change(await screen.findByLabelText('Ingredients'), {
+      target: { value: 'Roasted peanuts, salt' },
+    })
+    expect(await screen.findByRole('alert')).toHaveTextContent('peanuts')
+    expect(mockAllergenWarnings).toHaveBeenCalledWith(1, 'Roasted peanuts, salt')
+  })
+
+  it('shows no allergen warning when nothing matches', async () => {
+    renderForm()
+    fireEvent.change(await screen.findByLabelText('Ingredients'), {
+      target: { value: 'Rice' },
+    })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('loads households and defaults to the first', async () => {

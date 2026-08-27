@@ -1,19 +1,19 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import ItemDetailModal from './ItemDetailModal'
-import * as allergenSvc from '@/services/allergen'
+import * as allergenHooks from '@/hooks/useAllergenWarnings'
 import { type InventoryItem } from '@/services/inventory'
 
-vi.mock('@/services/allergen', () => ({
-  listHouseholdAllergens: vi.fn(),
-  checkIngredientsForAllergens: vi.fn(),
+// Matching happens on the server behind this hook; see
+// useAllergenWarnings.test.ts for the fetching and caching behaviour.
+vi.mock('@/hooks/useAllergenWarnings', () => ({
+  useItemAllergenWarnings: vi.fn(),
 }))
 vi.mock('./NutritionFactsLabel', () => ({
   default: () => <div data-testid="nutrition-facts-label" />,
 }))
 
-const mockList = vi.mocked(allergenSvc.listHouseholdAllergens)
-const mockCheck = vi.mocked(allergenSvc.checkIngredientsForAllergens)
+const mockWarnings = vi.mocked(allergenHooks.useItemAllergenWarnings)
 
 const item = (over: Partial<InventoryItem> = {}): InventoryItem =>
   ({
@@ -42,15 +42,14 @@ describe('ItemDetailModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    mockList.mockResolvedValue([])
-    mockCheck.mockReturnValue([])
+    mockWarnings.mockReturnValue([])
   })
 
-  it('renders the placeholder, name, and fetches household allergens', async () => {
+  it('renders the placeholder, name, and checks the item for household allergens', () => {
     render(<ItemDetailModal item={item({ name: 'Milk' })} onClose={vi.fn()} />)
     expect(screen.getByText('Item Details')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Milk' })).toBeInTheDocument()
-    await waitFor(() => expect(mockList).toHaveBeenCalledWith(7))
+    expect(mockWarnings).toHaveBeenCalledWith(7, 1)
   })
 
   it('renders the image, brand, and description when present', () => {
@@ -63,14 +62,6 @@ describe('ItemDetailModal', () => {
     expect((screen.getByAltText('Milk') as HTMLImageElement).src).toBe('http://x/i.png')
     expect(screen.getByText('Acme')).toBeInTheDocument()
     expect(screen.getByText('Whole')).toBeInTheDocument()
-  })
-
-  it('logs an error when allergen fetch fails', async () => {
-    mockList.mockRejectedValue(new Error('boom'))
-    render(<ItemDetailModal item={item()} onClose={vi.fn()} />)
-    await waitFor(() =>
-      expect(console.error).toHaveBeenCalledWith('Error fetching household allergens:', expect.any(Error))
-    )
   })
 
   it('formats integer quantity and singularizes the unit', () => {
@@ -125,7 +116,7 @@ describe('ItemDetailModal', () => {
   })
 
   it('warns about matched household and product allergens together', async () => {
-    mockCheck.mockReturnValue(['peanuts'])
+    mockWarnings.mockReturnValue(['peanuts'])
     render(
       <ItemDetailModal
         item={item({ ingredients: 'roasted oil', nutritional_info: JSON.stringify({ allergens: 'milk' }) })}

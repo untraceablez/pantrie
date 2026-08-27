@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { updateItem, type InventoryItem, type UpdateInventoryItemData } from '@/services/inventory'
 import { listHouseholdLocations, type Location } from '@/services/location'
+import { useTextAllergenWarnings } from '@/hooks/useAllergenWarnings'
+import AllergenWarning from '@/components/AllergenWarning'
 
 interface EditItemModalProps {
   item: InventoryItem
@@ -26,6 +28,10 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [locations, setLocations] = useState<Location[]>([])
+
+  // Checked server-side against the household's allergens as the field is
+  // edited, so the warning reflects what's in the box, not what was saved.
+  const ingredientAllergens = useTextAllergenWarnings(item.household_id, ingredients)
 
   // Fetch locations for the household
   useEffect(() => {
@@ -402,6 +408,28 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
                   disabled={loading}
                 />
               </div>
+            </div>
+
+            {/* Ingredients */}
+            <div>
+              <label htmlFor="ingredients" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ingredients
+              </label>
+              <textarea
+                id="ingredients"
+                value={ingredients}
+                onChange={(e) => setIngredients(e.target.value)}
+                rows={3}
+                className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                placeholder="e.g. Water, sugar, whole milk"
+                disabled={loading}
+              />
+              <AllergenWarning
+                allergens={ingredientAllergens}
+                label="Contains a household allergen"
+                live
+                className="mt-2"
+              />
             </div>
 
             {/* Notes */}

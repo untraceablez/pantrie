@@ -11,6 +11,7 @@ from typing import Any
 
 from src.config import get_settings
 from src.core.logging import setup_logging
+from src.services.allergen_service import format_allergen_tags
 from src.services.product_sources import (
     OFF,
     OFF_FAMILY,
@@ -420,23 +421,16 @@ class BarcodeService:
         """
         Format allergen tags into a readable string.
 
+        Delegates to the shared allergen module so product-database allergens
+        and household allergen warnings stay in one place.
+
         Args:
             allergen_tags: List of allergen tags from Open Food Facts (e.g., ['en:milk', 'en:soybeans'])
 
         Returns:
             Formatted allergens string (e.g., "Milk, Soybeans")
         """
-        if not allergen_tags:
-            return None
-
-        # Remove language prefix and capitalize
-        allergens = []
-        for tag in allergen_tags:
-            # Remove 'en:' prefix and capitalize
-            allergen = tag.split(':')[-1].replace('-', ' ').title()
-            allergens.append(allergen)
-
-        return ', '.join(allergens)
+        return format_allergen_tags(allergen_tags)
 
     def _format_ingredients(self, ingredients_text: str | None) -> str | None:
         """

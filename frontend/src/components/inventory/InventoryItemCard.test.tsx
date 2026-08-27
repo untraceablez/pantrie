@@ -1,16 +1,16 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import InventoryItemCard from './InventoryItemCard'
-import * as allergenSvc from '@/services/allergen'
+import * as allergenHooks from '@/hooks/useAllergenWarnings'
 import { type InventoryItem } from '@/services/inventory'
 
-vi.mock('@/services/allergen', () => ({
-  listHouseholdAllergens: vi.fn(),
-  checkIngredientsForAllergens: vi.fn(),
+// The card only renders what the shared hook resolved; the hook's own fetching
+// and cross-card request sharing are covered in useAllergenWarnings.test.ts.
+vi.mock('@/hooks/useAllergenWarnings', () => ({
+  useItemAllergenWarnings: vi.fn(),
 }))
 
-const mockList = vi.mocked(allergenSvc.listHouseholdAllergens)
-const mockCheck = vi.mocked(allergenSvc.checkIngredientsForAllergens)
+const mockWarnings = vi.mocked(allergenHooks.useItemAllergenWarnings)
 
 const item = (over: Partial<InventoryItem> = {}): InventoryItem =>
   ({
@@ -40,26 +40,19 @@ describe('InventoryItemCard', () => {
     vi.clearAllMocks()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
-    mockList.mockResolvedValue([])
-    mockCheck.mockReturnValue([])
+    mockWarnings.mockReturnValue([])
   })
 
-  it('renders a placeholder when there is no image, and the item name', async () => {
+  it('renders a placeholder when there is no image, and the item name', () => {
     render(<InventoryItemCard item={item({ name: 'Milk' })} />)
     expect(screen.getByText('Milk')).toBeInTheDocument()
-    await waitFor(() => expect(mockList).toHaveBeenCalledWith(7))
+    expect(mockWarnings).toHaveBeenCalledWith(7, 1)
   })
 
   it('renders an image when image_url is set', async () => {
     render(<InventoryItemCard item={item({ image_url: 'http://x/i.png', name: 'Milk' })} />)
     const img = screen.getByAltText('Milk') as HTMLImageElement
     expect(img.src).toBe('http://x/i.png')
-  })
-
-  it('logs an error when allergen fetch fails', async () => {
-    mockList.mockRejectedValue(new Error('boom'))
-    render(<InventoryItemCard item={item()} />)
-    await waitFor(() => expect(console.error).toHaveBeenCalledWith('Error fetching household allergens:', expect.any(Error)))
   })
 
   it('shows edit and delete buttons and fires their callbacks', async () => {
@@ -136,7 +129,7 @@ describe('InventoryItemCard', () => {
   })
 
   it('warns about matched household allergens', async () => {
-    mockCheck.mockReturnValue(['peanuts'])
+    mockWarnings.mockReturnValue(['peanuts'])
     render(<InventoryItemCard item={item({ ingredients: 'peanut butter' })} />)
     expect(await screen.findByText('Allergen Warning')).toBeInTheDocument()
     expect(screen.getByText('Household:')).toBeInTheDocument()

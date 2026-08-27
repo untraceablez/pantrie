@@ -11,9 +11,11 @@ from src.models.inventory_item import InventoryItem
 from src.schemas.mealie import (
     AvailabilityResult,
     DecrementResult,
+    IngredientAllergen,
     IngredientQuery,
     RecipeMakeability,
 )
+from src.services.allergen_service import AllergenService, match_allergens
 from src.services.ingredient_matching import find_matches, is_match
 
 logger = setup_logging()
@@ -50,6 +52,22 @@ class MealieQueryService:
     def _is_staple(ingredient: str, staples: list[str]) -> bool:
         """Whether an ingredient matches one of the household's staples."""
         return any(is_match(ingredient, staple) for staple in staples)
+
+    @staticmethod
+    def _flag_allergens(
+        ingredients: list[str], allergen_names: list[str]
+    ) -> list[IngredientAllergen]:
+        """Which of a recipe's ingredients implicate household allergens."""
+        if not allergen_names:
+            return []
+        flagged = []
+        for ingredient in ingredients:
+            allergens = match_allergens(ingredient, allergen_names)
+            if allergens:
+                flagged.append(
+                    IngredientAllergen(ingredient=ingredient, allergens=allergens)
+                )
+        return flagged
 
     @staticmethod
     def _build_result(query: IngredientQuery, matches: list[InventoryItem]) -> AvailabilityResult:
@@ -101,8 +119,14 @@ class MealieQueryService:
         makeable when it has ingredients and all of them are in stock — where
         "in stock" also covers the household's assumed staples (e.g. water),
         which are treated as on-hand without an inventory row.
+
+        Each ingredient is also checked against the household's declared
+        allergens via the shared checker, so a recipe you *can* make still
+        carries a warning when one of its ingredients is off-limits.
         """
         staples = await self._load_staple_names(household_id)
+        # Loaded once for the whole batch rather than per recipe or ingredient.
+        allergen_names = await AllergenService(self.db).get_allergen_names(household_id)
         annotated: list[RecipeMakeability] = []
         for recipe in recipes:
             ingredients: list[str] = recipe.get("ingredients", [])
@@ -122,6 +146,9 @@ class MealieQueryService:
                     total_ingredients=len(ingredients),
                     available_ingredients=len(ingredients) - len(missing),
                     missing=missing,
+                    allergen_ingredients=self._flag_allergens(
+                        ingredients, allergen_names
+                    ),
                 )
             )
         return annotated

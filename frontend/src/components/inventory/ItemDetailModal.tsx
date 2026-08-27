@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
 import { type InventoryItem } from '@/services/inventory'
-import { listHouseholdAllergens, checkIngredientsForAllergens, type Allergen } from '@/services/allergen'
+import { useItemAllergenWarnings } from '@/hooks/useAllergenWarnings'
 import NutritionFactsLabel from './NutritionFactsLabel'
 
 interface ItemDetailModalProps {
@@ -11,26 +10,10 @@ interface ItemDetailModalProps {
 }
 
 export default function ItemDetailModal({ item, onClose, onEdit, onDelete }: ItemDetailModalProps) {
-  const [householdAllergens, setHouseholdAllergens] = useState<Allergen[]>([])
-  const [matchedAllergens, setMatchedAllergens] = useState<string[]>([])
+  // Matched by the backend against the household's declared allergens; shares
+  // the same cached household-wide lookup the inventory cards use.
+  const matchedAllergens = useItemAllergenWarnings(item.household_id, item.id)
 
-  // Fetch household allergens and check for matches
-  useEffect(() => {
-    const fetchAndCheckAllergens = async () => {
-      try {
-        const allergens = await listHouseholdAllergens(item.household_id)
-        setHouseholdAllergens(allergens)
-
-        // Check if any household allergens match the ingredients
-        const matches = checkIngredientsForAllergens(item.ingredients, allergens)
-        setMatchedAllergens(matches)
-      } catch (err) {
-        console.error('Error fetching household allergens:', err)
-      }
-    }
-
-    fetchAndCheckAllergens()
-  }, [item.household_id, item.ingredients])
   // Format quantity to remove unnecessary decimals
   const formatQuantity = (quantity: number): string => {
     try {

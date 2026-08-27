@@ -8,6 +8,7 @@ import {
   type ShoppingListPushResult,
 } from '@/services/mealie'
 import ShoppingListPushModal from '@/components/recipes/ShoppingListPushModal'
+import AllergenWarning from '@/components/AllergenWarning'
 
 export default function Recipes() {
   const navigate = useNavigate()
@@ -150,6 +151,22 @@ export default function Recipes() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   {recipe.available_ingredients}/{recipe.total_ingredients} ingredients in stock
                 </p>
+                {/* Ingredients the backend matched to a household allergen. A
+                    recipe can be perfectly makeable and still be off-limits. */}
+                {(recipe.allergen_ingredients ?? []).length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-300">
+                      Household allergens in this recipe:
+                    </p>
+                    {(recipe.allergen_ingredients ?? []).map((flag) => (
+                      <AllergenWarning
+                        key={flag.ingredient}
+                        label={flag.ingredient}
+                        allergens={flag.allergens}
+                      />
+                    ))}
+                  </div>
+                )}
                 {recipe.missing.length > 0 && (
                   <>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
