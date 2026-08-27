@@ -11,7 +11,7 @@ import { listHouseholds, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
 import { logout } from '@/services/auth'
 import { useAuthStore } from '@/store/authStore'
-import { useThemeStore } from '@/store/themeStore'
+import PageHeader from '@/components/PageHeader'
 import InventoryList from '@/components/inventory/InventoryList'
 import SearchBar from '@/components/inventory/SearchBar'
 import EditItemModal from '@/components/inventory/EditItemModal'
@@ -87,7 +87,6 @@ export default function Inventory() {
   } = parseDashboardFilters(searchParams)
 
   const { user, refreshToken, logout: clearAuth } = useAuthStore()
-  const { resolvedTheme } = useThemeStore()
   const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<number | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
@@ -268,60 +267,13 @@ export default function Inventory() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <img
-                src={resolvedTheme === 'dark' ? '/pantrie-logo-light.png' : '/pantrie-logo-dark.png'}
-                alt="Pantrie"
-                className="h-12 w-auto"
-              />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory</h1>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  View and manage your household items
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Dashboard"
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => navigate('/recipes')}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Recipes"
-              >
-                Recipes
-              </button>
-              <button
-                onClick={() => navigate('/settings')}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Settings"
-              >
-                Settings
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Logout"
-              >
-                Logout
-              </button>
-              <button
-                onClick={() => navigate('/add-item')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-              >
-                Add Item
-              </button>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Inventory"
+          subtitle="View and manage your household items"
+          siblingLabel="Dashboard"
+          siblingTo="/dashboard"
+          onLogout={handleLogout}
+        />
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-md">
