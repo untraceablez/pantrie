@@ -9,6 +9,7 @@ from src.models.household_staple import HouseholdStaple
 from src.models.inventory_item import InventoryItem
 from src.models.location import Location
 from src.models.mealie_connection import MealieConnection
+from src.models.notification_dispatch import NotificationDispatch
 from src.models.refresh_token import RefreshToken
 from src.models.system_settings import SystemSettings
 from src.models.user import User
@@ -24,6 +25,7 @@ __all__ = [
     "InventoryItem",
     "Location",
     "MealieConnection",
+    "NotificationDispatch",
     "RefreshToken",
     "SystemSettings",
     "User",
