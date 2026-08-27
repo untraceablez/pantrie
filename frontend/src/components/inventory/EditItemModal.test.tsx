@@ -3,13 +3,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import EditItemModal from './EditItemModal'
 import * as inventorySvc from '@/services/inventory'
 import * as locationSvc from '@/services/location'
+import * as allergenHooks from '@/hooks/useAllergenWarnings'
 import { type InventoryItem } from '@/services/inventory'
 
 vi.mock('@/services/inventory', () => ({ updateItem: vi.fn() }))
 vi.mock('@/services/location', () => ({ listHouseholdLocations: vi.fn() }))
+// Allergen matching is the backend's job; the modal only renders the result.
+vi.mock('@/hooks/useAllergenWarnings', () => ({ useTextAllergenWarnings: vi.fn() }))
 
 const mockUpdate = vi.mocked(inventorySvc.updateItem)
 const mockListLocations = vi.mocked(locationSvc.listHouseholdLocations)
+const mockAllergenWarnings = vi.mocked(allergenHooks.useTextAllergenWarnings)
 
 const item = (over: Partial<InventoryItem> = {}): InventoryItem =>
   ({
@@ -53,6 +57,47 @@ describe('EditItemModal', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     mockListLocations.mockResolvedValue([])
     mockUpdate.mockResolvedValue({} as InventoryItem)
+    mockAllergenWarnings.mockReturnValue([])
+  })
+
+  it('edits the ingredients and saves them', async () => {
+    render(
+      <EditItemModal
+        item={item({ ingredients: 'Rice' })}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    )
+    const field = screen.getByLabelText('Ingredients') as HTMLTextAreaElement
+    expect(field.value).toBe('Rice')
+    fireEvent.change(field, { target: { value: 'Rice, whole milk' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await waitFor(() =>
+      expect(mockUpdate).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({ ingredients: 'Rice, whole milk' })
+      )
+    )
+  })
+
+  it('warns when the edited ingredients match a household allergen', async () => {
+    mockAllergenWarnings.mockReturnValue(['milk'])
+    render(
+      <EditItemModal
+        item={item({ ingredients: 'Rice, whole milk' })}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('milk')
+    expect(mockAllergenWarnings).toHaveBeenCalledWith(7, 'Rice, whole milk')
+  })
+
+  it('shows no allergen warning when nothing matches', () => {
+    render(
+      <EditItemModal item={item({ ingredients: 'Rice' })} onClose={vi.fn()} onSuccess={vi.fn()} />
+    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('seeds the form from the item and loads locations', async () => {

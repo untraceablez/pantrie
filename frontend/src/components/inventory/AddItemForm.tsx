@@ -11,6 +11,8 @@ import {
 import { listHouseholds, createHousehold, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
 import { useAuthStore } from '@/store/authStore'
+import { useTextAllergenWarnings } from '@/hooks/useAllergenWarnings'
+import AllergenWarning from '@/components/AllergenWarning'
 import BarcodeScanner from '@/components/barcode/BarcodeScanner'
 
 interface AddItemFormProps {
@@ -60,6 +62,10 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
   const [loadingHouseholds, setLoadingHouseholds] = useState(true)
   const [creatingHousehold, setCreatingHousehold] = useState(false)
   const [locations, setLocations] = useState<Location[]>([])
+
+  // Checked server-side against the household's allergens, so a manually typed
+  // (or looked-up) ingredient list warns before the item is ever saved.
+  const ingredientAllergens = useTextAllergenWarnings(householdId, ingredients)
 
   const { user } = useAuthStore()
   const barcodeInputRef = useRef<HTMLInputElement>(null)
@@ -892,6 +898,27 @@ export default function AddItemForm({ onSuccess, onCancel }: AddItemFormProps) {
             onChange={(e) => setExpirationDate(e.target.value)}
           />
         </div>
+      </div>
+
+      {/* Ingredients — prefilled by a product lookup, editable for manual adds */}
+      <div>
+        <label htmlFor="ingredients" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Ingredients
+        </label>
+        <textarea
+          id="ingredients"
+          rows={3}
+          className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+          value={ingredients}
+          onChange={(e) => setIngredients(e.target.value)}
+          placeholder="e.g. Water, sugar, whole milk"
+        />
+        <AllergenWarning
+          allergens={ingredientAllergens}
+          label="Contains a household allergen"
+          live
+          className="mt-2"
+        />
       </div>
 
       {/* Notes */}

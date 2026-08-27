@@ -78,6 +78,13 @@ class MealieConnectionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class IngredientAllergen(BaseModel):
+    """A recipe ingredient that implicates one or more household allergens."""
+
+    ingredient: str
+    allergens: list[str]
+
+
 class RecipeMakeability(BaseModel):
     """A Mealie recipe with whether it can be made from current inventory."""
 
@@ -87,6 +94,9 @@ class RecipeMakeability(BaseModel):
     total_ingredients: int
     available_ingredients: int
     missing: list[str]
+    # Ingredients matching one of the household's declared allergens. Empty for
+    # households that declared none, so a recipe is never flagged spuriously.
+    allergen_ingredients: list[IngredientAllergen] = Field(default_factory=list)
 
 
 class RecipesResponse(BaseModel):

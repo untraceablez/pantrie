@@ -50,21 +50,30 @@ describe('allergen service', () => {
     expect(mockApi.delete).toHaveBeenCalledWith('/households/allergens/2')
   })
 
-  it('checkIngredientsForAllergens matches on word boundaries, case-insensitively', async () => {
-    const { checkIngredientsForAllergens } = await import('./allergen')
-    const allergens = [
-      { id: 1, household_id: 1, name: 'Milk', created_at: '', updated_at: '' },
-      { id: 2, household_id: 1, name: 'Soy', created_at: '', updated_at: '' },
-    ]
-    expect(checkIngredientsForAllergens('Contains MILK and water', allergens)).toEqual(['Milk'])
-    // "Soybean" should NOT match "Soy" due to the word boundary
-    expect(checkIngredientsForAllergens('soybean oil', allergens)).toEqual([])
+  // Matching itself moved to the backend (one shared implementation with
+  // recipe makeability); the client only carries the calls.
+  it('fetches inventory allergen matches for a whole household in one call', async () => {
+    const mod = await import('./allergen')
+    mockApi.get.mockResolvedValue(
+      data({ matches: [{ item_id: 3, name: 'Cookies', allergens: ['milk'] }] })
+    )
+    expect(await mod.getInventoryAllergenMatches(7)).toEqual([
+      { item_id: 3, name: 'Cookies', allergens: ['milk'] },
+    ])
+    expect(mockApi.get).toHaveBeenCalledWith('/households/7/allergens/inventory-matches')
   })
 
-  it('checkIngredientsForAllergens returns [] for empty inputs', async () => {
-    const { checkIngredientsForAllergens } = await import('./allergen')
-    expect(checkIngredientsForAllergens(null, [{ id: 1, household_id: 1, name: 'x', created_at: '', updated_at: '' }])).toEqual([])
-    expect(checkIngredientsForAllergens('milk', [])).toEqual([])
+  it('checks free text against household allergens', async () => {
+    const mod = await import('./allergen')
+    mockApi.post.mockResolvedValue(
+      data({ results: [{ text: 'whole milk', allergens: ['milk'] }] })
+    )
+    expect(await mod.checkTextsForAllergens(7, ['whole milk'])).toEqual([
+      { text: 'whole milk', allergens: ['milk'] },
+    ])
+    expect(mockApi.post).toHaveBeenCalledWith('/households/7/allergens/check', {
+      texts: ['whole milk'],
+    })
   })
 })
 

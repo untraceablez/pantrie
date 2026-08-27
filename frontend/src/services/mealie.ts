@@ -9,6 +9,11 @@ export interface MealieConnection {
   updated_at: string
 }
 
+export interface IngredientAllergen {
+  ingredient: string
+  allergens: string[]
+}
+
 export interface RecipeMakeability {
   recipe_id: string
   name: string
@@ -16,6 +21,9 @@ export interface RecipeMakeability {
   total_ingredients: number
   available_ingredients: number
   missing: string[]
+  // Ingredients matching a household allergen. Optional so an older backend
+  // (or a fixture written before this field existed) still type-checks.
+  allergen_ingredients?: IngredientAllergen[]
 }
 
 export interface ShoppingList {
