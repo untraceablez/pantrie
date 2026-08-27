@@ -4,7 +4,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.exceptions import AuthorizationError, NotFoundError
@@ -181,6 +181,9 @@ class InventoryService:
         search: str | None = None,
         category_id: int | None = None,
         location_id: int | None = None,
+        expiring_within_days: int | None = None,
+        expired: bool = False,
+        low_stock_threshold: Decimal | None = None,
         sort_by: str = "created_at",
         sort_order: str = "desc",
     ) -> tuple[list[InventoryItem], int]:
@@ -195,6 +198,13 @@ class InventoryService:
             search: Search term for fuzzy name/description matching
             category_id: Filter by category ID
             location_id: Filter by location ID
+            expiring_within_days: Keep only items expiring from today through
+                ``today + N days`` (already-expired items are excluded)
+            expired: Keep only items whose expiration date is in the past.
+                Combined with ``expiring_within_days`` the two are OR-ed, giving
+                an "everything that needs attention" view.
+            low_stock_threshold: Keep only items whose quantity is at or below
+                this value
             sort_by: Field to sort by (name, expiration_date, created_at, quantity)
             sort_order: Sort order (asc or desc)
 
@@ -228,6 +238,28 @@ class InventoryService:
         if location_id is not None:
             query = query.where(InventoryItem.location_id == location_id)
 
+        # Apply expiry filters (drive the dashboard's expired / expiring cards)
+        today = date.today()
+        expiry_conditions = []
+        if expired:
+            expiry_conditions.append(InventoryItem.expiration_date < today)
+        if expiring_within_days is not None:
+            horizon = today + timedelta(days=expiring_within_days)
+            expiry_conditions.append(
+                and_(
+                    InventoryItem.expiration_date >= today,
+                    InventoryItem.expiration_date <= horizon,
+                )
+            )
+        if expiry_conditions:
+            query = query.where(
+                InventoryItem.expiration_date.is_not(None), or_(*expiry_conditions)
+            )
+
+        # Apply low-stock filter (drives the dashboard's low-stock card)
+        if low_stock_threshold is not None:
+            query = query.where(InventoryItem.quantity <= low_stock_threshold)
+
         # Get total count before pagination
         count_query = select(func.count()).select_from(query.subquery())
         count_result = await self.db.execute(count_query)
@@ -258,6 +290,9 @@ class InventoryService:
             search=search,
             category_id=category_id,
             location_id=location_id,
+            expiring_within_days=expiring_within_days,
+            expired=expired,
+            low_stock_threshold=low_stock_threshold,
         )
 
         return items, total

@@ -1,24 +1,98 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { listInventory, deleteItem, type InventoryListResponse, type InventoryItem } from '@/services/inventory'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import {
+  listInventory,
+  deleteItem,
+  type InventoryListParams,
+  type InventoryListResponse,
+  type InventoryItem,
+} from '@/services/inventory'
 import { listHouseholds, type HouseholdWithRole } from '@/services/household'
 import { listHouseholdLocations, type Location } from '@/services/location'
 import { logout } from '@/services/auth'
 import { useAuthStore } from '@/store/authStore'
-import { useThemeStore } from '@/store/themeStore'
+import PageHeader from '@/components/PageHeader'
 import InventoryList from '@/components/inventory/InventoryList'
 import SearchBar from '@/components/inventory/SearchBar'
 import EditItemModal from '@/components/inventory/EditItemModal'
 import ItemDetailModal from '@/components/inventory/ItemDetailModal'
 
+/** Parse a query-string value as a positive number, or undefined if absent/bad. */
+const numberParam = (value: string | null): number | undefined => {
+  if (value === null || value.trim() === '') return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+interface DashboardFilters {
+  urlLocationId: number | undefined
+  urlExpiringWithinDays: number | undefined
+  urlLowStockThreshold: number | undefined
+  urlExpired: boolean
+  urlSortBy: string | null
+  urlSortOrder: 'asc' | 'desc'
+  hasDashboardFilter: boolean
+  dashboardFilterLabel: string
+}
+
+/** Read the filters a dashboard card deep-links with, plus a human label for them. */
+const parseDashboardFilters = (searchParams: URLSearchParams): DashboardFilters => {
+  const urlExpiringWithinDays = numberParam(searchParams.get('expiring_within_days'))
+  const urlLowStockThreshold = numberParam(searchParams.get('low_stock_threshold'))
+  const urlExpired = searchParams.get('expired') === 'true'
+
+  const labels: string[] = []
+  if (urlExpired) labels.push('expired items')
+  if (urlExpiringWithinDays !== undefined) {
+    labels.push(`items expiring within ${urlExpiringWithinDays} days`)
+  }
+  if (urlLowStockThreshold !== undefined) {
+    labels.push(`items with quantity of ${urlLowStockThreshold} or less`)
+  }
+
+  return {
+    urlLocationId: numberParam(searchParams.get('location_id')),
+    urlExpiringWithinDays,
+    urlLowStockThreshold,
+    urlExpired,
+    urlSortBy: searchParams.get('sort_by'),
+    urlSortOrder: searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc',
+    hasDashboardFilter:
+      urlExpired || urlExpiringWithinDays !== undefined || urlLowStockThreshold !== undefined,
+    dashboardFilterLabel: labels.join(' and '),
+  }
+}
+
+/** Message for the empty inventory panel, given why it might be empty. */
+const emptyStateMessage = (search: string, hasDashboardFilter: boolean): string => {
+  if (search) return 'No items found matching your search'
+  if (hasDashboardFilter) return 'No items match this filter'
+  return 'No items in your inventory yet'
+}
+
 export default function Inventory() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  // Dashboard cards deep-link into this page with pre-applied filters.
+  const {
+    urlLocationId,
+    urlExpiringWithinDays,
+    urlLowStockThreshold,
+    urlExpired,
+    urlSortBy,
+    urlSortOrder,
+    hasDashboardFilter,
+    dashboardFilterLabel,
+  } = parseDashboardFilters(searchParams)
+
   const { user, refreshToken, logout: clearAuth } = useAuthStore()
-  const { resolvedTheme } = useThemeStore()
   const [households, setHouseholds] = useState<HouseholdWithRole[]>([])
   const [selectedHouseholdId, setSelectedHouseholdId] = useState<number | null>(null)
   const [locations, setLocations] = useState<Location[]>([])
-  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(null)
+  const [selectedLocationId, setSelectedLocationId] = useState<number | null>(
+    urlLocationId ?? null
+  )
   const [inventoryData, setInventoryData] = useState<InventoryListResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
@@ -30,10 +104,23 @@ export default function Inventory() {
   // Search and filter state
   const [search, setSearch] = useState('')
   const [categoryId] = useState<number | undefined>(undefined)
-  const [sortBy, setSortBy] = useState('created_at')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [sortBy, setSortBy] = useState(urlSortBy || 'created_at')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(urlSortOrder)
   const [page, setPage] = useState(1)
   const pageSize = 20
+
+  const buildListParams = (): InventoryListParams => ({
+    page,
+    page_size: pageSize,
+    search: search || undefined,
+    category_id: categoryId,
+    location_id: selectedLocationId || undefined,
+    expiring_within_days: urlExpiringWithinDays,
+    expired: urlExpired || undefined,
+    low_stock_threshold: urlLowStockThreshold,
+    sort_by: sortBy,
+    sort_order: sortOrder,
+  })
 
   // Fetch user's households on mount
   useEffect(() => {
@@ -58,15 +145,15 @@ export default function Inventory() {
     const fetchLocations = async () => {
       if (!selectedHouseholdId) {
         setLocations([])
-        setSelectedLocationId(null)
+        setSelectedLocationId(urlLocationId ?? null)
         return
       }
 
       try {
         const householdLocations = await listHouseholdLocations(selectedHouseholdId)
         setLocations(householdLocations)
-        // Reset to "All" tab when household changes
-        setSelectedLocationId(null)
+        // Reset to the deep-linked location (or "All") when household changes
+        setSelectedLocationId(urlLocationId ?? null)
       } catch (err) {
         console.error('Error fetching locations:', err)
       }
@@ -85,15 +172,7 @@ export default function Inventory() {
 
       try {
         setLoading(true)
-        const data = await listInventory(selectedHouseholdId, {
-          page,
-          page_size: pageSize,
-          search: search || undefined,
-          category_id: categoryId,
-          location_id: selectedLocationId || undefined,
-          sort_by: sortBy,
-          sort_order: sortOrder,
-        })
+        const data = await listInventory(selectedHouseholdId, buildListParams())
         setInventoryData(data)
         setError('')
       } catch (err: any) {
@@ -148,15 +227,7 @@ export default function Inventory() {
 
       // Refresh inventory after successful delete
       if (selectedHouseholdId) {
-        const data = await listInventory(selectedHouseholdId, {
-          page,
-          page_size: pageSize,
-          search: search || undefined,
-          category_id: categoryId,
-          location_id: selectedLocationId || undefined,
-          sort_by: sortBy,
-          sort_order: sortOrder,
-        })
+        const data = await listInventory(selectedHouseholdId, buildListParams())
         setInventoryData(data)
       }
     } catch (err: any) {
@@ -170,15 +241,7 @@ export default function Inventory() {
   const handleEditSuccess = () => {
     // Refresh inventory after successful edit
     if (selectedHouseholdId) {
-      listInventory(selectedHouseholdId, {
-        page,
-        page_size: pageSize,
-        search: search || undefined,
-        category_id: categoryId,
-        location_id: selectedLocationId || undefined,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-      })
+      listInventory(selectedHouseholdId, buildListParams())
         .then((data) => setInventoryData(data))
         .catch((err) => {
           console.error('Error refreshing inventory:', err)
@@ -204,53 +267,13 @@ export default function Inventory() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <img
-                src={resolvedTheme === 'dark' ? '/pantrie-logo-light.png' : '/pantrie-logo-dark.png'}
-                alt="Pantrie"
-                className="h-12 w-auto"
-              />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventory</h1>
-                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  View and manage your household items
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate('/recipes')}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Recipes"
-              >
-                Recipes
-              </button>
-              <button
-                onClick={() => navigate('/settings')}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Settings"
-              >
-                Settings
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
-                title="Logout"
-              >
-                Logout
-              </button>
-              <button
-                onClick={() => navigate('/add-item')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
-              >
-                Add Item
-              </button>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          title="Inventory"
+          subtitle="View and manage your household items"
+          siblingLabel="Dashboard"
+          siblingTo="/dashboard"
+          onLogout={handleLogout}
+        />
 
         {error && (
           <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-800 rounded-md">
@@ -311,6 +334,21 @@ export default function Inventory() {
           </div>
         )}
 
+        {/* Dashboard deep-link filter banner */}
+        {hasDashboardFilter && (
+          <div className="mb-6 flex items-center justify-between bg-blue-50 dark:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              Showing {dashboardFilterLabel}
+            </p>
+            <button
+              onClick={() => navigate('/inventory')}
+              className="text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline"
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
+
         {/* Search Bar */}
         <div className="mb-6">
           <SearchBar value={search} onChange={handleSearchChange} />
@@ -331,7 +369,7 @@ export default function Inventory() {
         ) : !inventoryData || inventoryData.items.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {search ? 'No items found matching your search' : 'No items in your inventory yet'}
+              {emptyStateMessage(search, hasDashboardFilter)}
             </p>
             <button
               onClick={() => navigate('/add-item')}

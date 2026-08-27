@@ -23,6 +23,7 @@ vi.mock('@/pages/EmailConfirmationPage', () => ({
 }))
 vi.mock('@/pages/OAuthCallback', () => ({ default: () => <div>OAUTH CALLBACK PAGE</div> }))
 vi.mock('@/pages/AddItem', () => ({ default: () => <div>ADD ITEM PAGE</div> }))
+vi.mock('@/pages/Dashboard', () => ({ default: () => <div>DASHBOARD PAGE</div> }))
 vi.mock('@/pages/Inventory', () => ({ default: () => <div>INVENTORY PAGE</div> }))
 vi.mock('@/pages/Recipes', () => ({ default: () => <div>RECIPES PAGE</div> }))
 vi.mock('@/pages/Settings', () => ({ default: () => <div>SETTINGS PAGE</div> }))
@@ -69,15 +70,30 @@ describe('App', () => {
     expect(screen.getByText('OAUTH CALLBACK PAGE')).toBeInTheDocument()
   })
 
-  it('redirects the index route to /login', () => {
+  it('redirects the index route to /login when unauthenticated', () => {
     renderAt('/')
     expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument()
+  })
+
+  it('lands the index route on the dashboard when authenticated', () => {
+    renderAt('/', true)
+    expect(screen.getByText('DASHBOARD PAGE')).toBeInTheDocument()
   })
 
   describe('protected routes', () => {
     it('renders the dashboard when authenticated', () => {
       renderAt('/dashboard', true)
+      expect(screen.getByText('DASHBOARD PAGE')).toBeInTheDocument()
+    })
+
+    it('renders the inventory when authenticated', () => {
+      renderAt('/inventory', true)
       expect(screen.getByText('INVENTORY PAGE')).toBeInTheDocument()
+    })
+
+    it('redirects /inventory to /login when unauthenticated', () => {
+      renderAt('/inventory', false)
+      expect(screen.getByText('LOGIN PAGE')).toBeInTheDocument()
     })
 
     it('renders add-item when authenticated', () => {

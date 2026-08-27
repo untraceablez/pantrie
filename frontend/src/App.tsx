@@ -9,6 +9,7 @@ import Register from '@/pages/Register'
 import EmailConfirmationPage from '@/pages/EmailConfirmationPage'
 import OAuthCallback from '@/pages/OAuthCallback'
 import AddItem from '@/pages/AddItem'
+import Dashboard from '@/pages/Dashboard'
 import Inventory from '@/pages/Inventory'
 import Recipes from '@/pages/Recipes'
 import Settings from '@/pages/Settings'
@@ -43,6 +44,14 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/inventory"
+            element={
+              <ProtectedRoute>
                 <Inventory />
               </ProtectedRoute>
             }
@@ -71,7 +80,9 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* The dashboard is the landing route; ProtectedRoute bounces
+              unauthenticated visitors on to /login. */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </SetupGuard>
     </BrowserRouter>

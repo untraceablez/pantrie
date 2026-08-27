@@ -63,6 +63,12 @@ export interface InventoryListParams {
   search?: string
   category_id?: number
   location_id?: number
+  /** Only items expiring from today through today + N days */
+  expiring_within_days?: number
+  /** Only items whose expiration date is in the past */
+  expired?: boolean
+  /** Only items with quantity at or below this value */
+  low_stock_threshold?: number
   sort_by?: string
   sort_order?: 'asc' | 'desc'
 }
