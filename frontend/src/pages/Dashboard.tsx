@@ -33,6 +33,182 @@ const formatDate = (value: string | null): string => {
   return parsed.toLocaleDateString()
 }
 
+interface DashboardBodyProps {
+  loading: boolean
+  selectedHouseholdId: number | null
+  summary: DashboardSummary | null
+  cards: SummaryCard[]
+  navigate: (to: string) => void
+}
+
+/** The state-dependent half of the page.
+ *
+ * Split out of `Dashboard` so the loading / no-household / no-data / populated
+ * branches are early returns rather than a nested ternary chain.
+ */
+function DashboardBody({
+  loading,
+  selectedHouseholdId,
+  summary,
+  cards,
+  navigate,
+}: DashboardBodyProps) {
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
+      </div>
+    )
+  }
+
+  if (!selectedHouseholdId) {
+    return (
+      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">No household selected</p>
+      </div>
+    )
+  }
+
+  if (!summary) {
+    return (
+      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+        <p className="text-gray-500 dark:text-gray-400 mb-4">No dashboard data available</p>
+      </div>
+    )
+  }
+
+  return (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {cards.map((card) => (
+              <button
+                key={card.key}
+                onClick={() => navigate(card.to)}
+                className="text-left bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
+              >
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  {card.label}
+                </p>
+                <p className={`mt-2 text-3xl font-bold ${card.accent}`}>{card.count}</p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{card.hint}</p>
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Breakdown by location */}
+            <section className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                By location
+              </h2>
+              {summary.by_location.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No items in your inventory yet
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {summary.by_location.map((bucket) => (
+                    <li key={bucket.location_id ?? 'unassigned'}>
+                      <button
+                        onClick={() =>
+                          navigate(
+                            bucket.location_id === null
+                              ? '/inventory'
+                              : `/inventory?location_id=${bucket.location_id}`
+                          )
+                        }
+                        className="w-full flex items-center justify-between py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <span className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                          {bucket.icon && <span aria-hidden="true">{bucket.icon}</span>}
+                          <span>{bucket.name}</span>
+                        </span>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {bucket.item_count}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Recently added */}
+            <section className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Recently added
+              </h2>
+              {summary.recently_added.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Nothing added yet.{' '}
+                  <button
+                    onClick={() => navigate('/add-item')}
+                    className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                  >
+                    Add your first item
+                  </button>
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {summary.recently_added.map((item) => (
+                    <li key={item.id} className="py-3 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {item.name}
+                        </p>
+                        {item.brand && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{item.brand}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {formatQuantity(item.quantity)}
+                          {item.unit ? ` ${item.unit}` : ''}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {formatDate(item.expiration_date)}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {/* Breakdown by category */}
+            <section className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                By category
+              </h2>
+              {summary.by_category.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  No items in your inventory yet
+                </p>
+              ) : (
+                <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {summary.by_category.map((bucket) => (
+                    <li
+                      key={bucket.category_id ?? 'unassigned'}
+                      className="py-3 flex items-center justify-between"
+                    >
+                      <span className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
+                        {bucket.icon && <span aria-hidden="true">{bucket.icon}</span>}
+                        <span>{bucket.name}</span>
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {bucket.item_count}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+        </>
+  )
+}
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const { user, refreshToken, logout: clearAuth } = useAuthStore()
@@ -231,148 +407,13 @@ export default function Dashboard() {
           </div>
         )}
 
-        {loading ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">Loading dashboard...</p>
-          </div>
-        ) : !selectedHouseholdId ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">No household selected</p>
-          </div>
-        ) : !summary ? (
-          <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-            <p className="text-gray-500 dark:text-gray-400 mb-4">No dashboard data available</p>
-          </div>
-        ) : (
-          <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {cards.map((card) => (
-                <button
-                  key={card.key}
-                  onClick={() => navigate(card.to)}
-                  className="text-left bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary transition-shadow"
-                >
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    {card.label}
-                  </p>
-                  <p className={`mt-2 text-3xl font-bold ${card.accent}`}>{card.count}</p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{card.hint}</p>
-                </button>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Breakdown by location */}
-              <section className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  By location
-                </h2>
-                {summary.by_location.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No items in your inventory yet
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {summary.by_location.map((bucket) => (
-                      <li key={bucket.location_id ?? 'unassigned'}>
-                        <button
-                          onClick={() =>
-                            navigate(
-                              bucket.location_id === null
-                                ? '/inventory'
-                                : `/inventory?location_id=${bucket.location_id}`
-                            )
-                          }
-                          className="w-full flex items-center justify-between py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md px-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                        >
-                          <span className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-                            {bucket.icon && <span aria-hidden="true">{bucket.icon}</span>}
-                            <span>{bucket.name}</span>
-                          </span>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {bucket.item_count}
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              {/* Recently added */}
-              <section className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Recently added
-                </h2>
-                {summary.recently_added.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Nothing added yet.{' '}
-                    <button
-                      onClick={() => navigate('/add-item')}
-                      className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                    >
-                      Add your first item
-                    </button>
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {summary.recently_added.map((item) => (
-                      <li key={item.id} className="py-3 flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.name}
-                          </p>
-                          {item.brand && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{item.brand}</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-700 dark:text-gray-300">
-                            {formatQuantity(item.quantity)}
-                            {item.unit ? ` ${item.unit}` : ''}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatDate(item.expiration_date)}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              {/* Breakdown by category */}
-              <section className="bg-white dark:bg-gray-800 shadow-sm rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  By category
-                </h2>
-                {summary.by_category.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    No items in your inventory yet
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {summary.by_category.map((bucket) => (
-                      <li
-                        key={bucket.category_id ?? 'unassigned'}
-                        className="py-3 flex items-center justify-between"
-                      >
-                        <span className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">
-                          {bucket.icon && <span aria-hidden="true">{bucket.icon}</span>}
-                          <span>{bucket.name}</span>
-                        </span>
-                        <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                          {bucket.item_count}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-          </>
-        )}
+        <DashboardBody
+          loading={loading}
+          selectedHouseholdId={selectedHouseholdId}
+          summary={summary}
+          cards={cards}
+          navigate={navigate}
+        />
       </div>
     </div>
   )

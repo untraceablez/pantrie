@@ -24,29 +24,67 @@ const numberParam = (value: string | null): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
+interface DashboardFilters {
+  urlLocationId: number | undefined
+  urlExpiringWithinDays: number | undefined
+  urlLowStockThreshold: number | undefined
+  urlExpired: boolean
+  urlSortBy: string | null
+  urlSortOrder: 'asc' | 'desc'
+  hasDashboardFilter: boolean
+  dashboardFilterLabel: string
+}
+
+/** Read the filters a dashboard card deep-links with, plus a human label for them. */
+const parseDashboardFilters = (searchParams: URLSearchParams): DashboardFilters => {
+  const urlExpiringWithinDays = numberParam(searchParams.get('expiring_within_days'))
+  const urlLowStockThreshold = numberParam(searchParams.get('low_stock_threshold'))
+  const urlExpired = searchParams.get('expired') === 'true'
+
+  const labels: string[] = []
+  if (urlExpired) labels.push('expired items')
+  if (urlExpiringWithinDays !== undefined) {
+    labels.push(`items expiring within ${urlExpiringWithinDays} days`)
+  }
+  if (urlLowStockThreshold !== undefined) {
+    labels.push(`items with quantity of ${urlLowStockThreshold} or less`)
+  }
+
+  return {
+    urlLocationId: numberParam(searchParams.get('location_id')),
+    urlExpiringWithinDays,
+    urlLowStockThreshold,
+    urlExpired,
+    urlSortBy: searchParams.get('sort_by'),
+    urlSortOrder: searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc',
+    hasDashboardFilter:
+      urlExpired || urlExpiringWithinDays !== undefined || urlLowStockThreshold !== undefined,
+    dashboardFilterLabel: labels.join(' and '),
+  }
+}
+
+/** Message for the empty inventory panel, given why it might be empty. */
+const emptyStateMessage = (search: string, hasDashboardFilter: boolean): string => {
+  if (search) return 'No items found matching your search'
+  if (hasDashboardFilter) return 'No items match this filter'
+  return 'No items in your inventory yet'
+}
+
 export default function Inventory() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
   // Dashboard cards deep-link into this page with pre-applied filters.
-  const urlLocationId = numberParam(searchParams.get('location_id'))
-  const urlExpiringWithinDays = numberParam(searchParams.get('expiring_within_days'))
-  const urlLowStockThreshold = numberParam(searchParams.get('low_stock_threshold'))
-  const urlExpired = searchParams.get('expired') === 'true'
-  const urlSortBy = searchParams.get('sort_by')
-  const urlSortOrder = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc'
-  const hasDashboardFilter =
-    urlExpired || urlExpiringWithinDays !== undefined || urlLowStockThreshold !== undefined
-
-  const dashboardFilterLabels: string[] = []
-  if (urlExpired) dashboardFilterLabels.push('expired items')
-  if (urlExpiringWithinDays !== undefined) {
-    dashboardFilterLabels.push(`items expiring within ${urlExpiringWithinDays} days`)
-  }
-  if (urlLowStockThreshold !== undefined) {
-    dashboardFilterLabels.push(`items with quantity of ${urlLowStockThreshold} or less`)
-  }
-  const dashboardFilterLabel = dashboardFilterLabels.join(' and ')
+  const {
+    urlLocationId,
+    urlExpiringWithinDays,
+    urlLowStockThreshold,
+    urlExpired,
+    urlSortBy,
+    urlSortOrder,
+    hasDashboardFilter,
+    dashboardFilterLabel,
+  } = parseDashboardFilters(searchParams)
 
   const { user, refreshToken, logout: clearAuth } = useAuthStore()
   const { resolvedTheme } = useThemeStore()
@@ -379,11 +417,7 @@ export default function Inventory() {
         ) : !inventoryData || inventoryData.items.length === 0 ? (
           <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
             <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {search
-                ? 'No items found matching your search'
-                : hasDashboardFilter
-                  ? 'No items match this filter'
-                  : 'No items in your inventory yet'}
+              {emptyStateMessage(search, hasDashboardFilter)}
             </p>
             <button
               onClick={() => navigate('/add-item')}

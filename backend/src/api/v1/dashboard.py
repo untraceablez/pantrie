@@ -1,5 +1,6 @@
 """Dashboard API endpoints."""
 from decimal import Decimal
+from typing import Annotated
 
 from fastapi import APIRouter, Query
 
@@ -20,23 +21,25 @@ async def get_household_summary(
     household_id: int,
     user_id: CurrentUserId,
     db: DbSession,
-    expiring_within_days: int = Query(
-        DEFAULT_EXPIRING_WITHIN_DAYS,
-        ge=0,
-        le=365,
-        description="Horizon in days for the 'expiring soon' count",
-    ),
-    low_stock_threshold: Decimal = Query(
-        DEFAULT_LOW_STOCK_THRESHOLD,
-        ge=0,
-        description="Quantity at or below which an item counts as low stock",
-    ),
-    recent_limit: int = Query(
-        DEFAULT_RECENT_LIMIT,
-        ge=1,
-        le=50,
-        description="How many recently added items to return",
-    ),
+    expiring_within_days: Annotated[
+        int,
+        Query(
+            ge=0,
+            le=365,
+            description="Horizon in days for the 'expiring soon' count",
+        ),
+    ] = DEFAULT_EXPIRING_WITHIN_DAYS,
+    low_stock_threshold: Annotated[
+        Decimal,
+        Query(
+            ge=0,
+            description="Quantity at or below which an item counts as low stock",
+        ),
+    ] = DEFAULT_LOW_STOCK_THRESHOLD,
+    recent_limit: Annotated[
+        int,
+        Query(ge=1, le=50, description="How many recently added items to return"),
+    ] = DEFAULT_RECENT_LIMIT,
 ) -> DashboardSummaryResponse:
     """Aggregated inventory health for a household."""
     dashboard_service = DashboardService(db)

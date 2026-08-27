@@ -1,5 +1,6 @@
 """Inventory API endpoints."""
 from decimal import Decimal
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
@@ -37,18 +38,22 @@ async def list_inventory(
     search: str | None = Query(None, description="Search term for name, description, or brand"),
     category_id: int | None = Query(None, description="Filter by category ID"),
     location_id: int | None = Query(None, description="Filter by location ID"),
-    expiring_within_days: int | None = Query(
-        None,
-        ge=0,
-        le=365,
-        description="Only items expiring from today through today + N days",
-    ),
-    expired: bool = Query(
-        False, description="Only items whose expiration date is in the past"
-    ),
-    low_stock_threshold: Decimal | None = Query(
-        None, ge=0, description="Only items with quantity at or below this value"
-    ),
+    expiring_within_days: Annotated[
+        int | None,
+        Query(
+            ge=0,
+            le=365,
+            description="Only items expiring from today through today + N days",
+        ),
+    ] = None,
+    expired: Annotated[
+        bool,
+        Query(description="Only items whose expiration date is in the past"),
+    ] = False,
+    low_stock_threshold: Annotated[
+        Decimal | None,
+        Query(ge=0, description="Only items with quantity at or below this value"),
+    ] = None,
     sort_by: str = Query("created_at", description="Field to sort by"),
     sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
 ) -> InventoryItemListResponse:
