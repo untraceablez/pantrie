@@ -1,4 +1,6 @@
 """Inventory API endpoints."""
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, Query, status
 
 from src.core.deps import CurrentUserId, DbSession
@@ -35,6 +37,18 @@ async def list_inventory(
     search: str | None = Query(None, description="Search term for name, description, or brand"),
     category_id: int | None = Query(None, description="Filter by category ID"),
     location_id: int | None = Query(None, description="Filter by location ID"),
+    expiring_within_days: int | None = Query(
+        None,
+        ge=0,
+        le=365,
+        description="Only items expiring from today through today + N days",
+    ),
+    expired: bool = Query(
+        False, description="Only items whose expiration date is in the past"
+    ),
+    low_stock_threshold: Decimal | None = Query(
+        None, ge=0, description="Only items with quantity at or below this value"
+    ),
     sort_by: str = Query("created_at", description="Field to sort by"),
     sort_order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
 ) -> InventoryItemListResponse:
@@ -48,6 +62,9 @@ async def list_inventory(
         search=search,
         category_id=category_id,
         location_id=location_id,
+        expiring_within_days=expiring_within_days,
+        expired=expired,
+        low_stock_threshold=low_stock_threshold,
         sort_by=sort_by,
         sort_order=sort_order,
     )

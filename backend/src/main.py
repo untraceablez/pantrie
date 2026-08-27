@@ -12,7 +12,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from sqlalchemy import select
 
-from src.api.v1 import allergen, api_clients, auth, barcode, client_gateway, email_confirmation, households, inventory, locations, mealie, notifications, oauth, setup, site_admin, site_settings, staple, users
+from src.api.v1 import allergen, api_clients, auth, barcode, client_gateway, dashboard, email_confirmation, households, inventory, locations, mealie, notifications, oauth, setup, site_admin, site_settings, staple, users
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
@@ -205,6 +205,7 @@ app.include_router(api_clients.router, prefix="/api/v1")
 app.include_router(client_gateway.router, prefix="/api/v1")
 app.include_router(mealie.router, prefix="/api/v1")
 app.include_router(inventory.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")  # Household dashboard summary
 app.include_router(locations.router, prefix="/api/v1")
 app.include_router(site_admin.router, prefix="/api/v1")  # Site admin endpoints
 app.include_router(site_settings.router, prefix="/api/v1")  # Site settings endpoints

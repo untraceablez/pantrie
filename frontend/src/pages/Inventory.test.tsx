@@ -10,7 +10,12 @@ import { useThemeStore } from '@/store/themeStore'
 import type { InventoryItem, InventoryListResponse } from '@/services/inventory'
 
 const mockNavigate = vi.fn()
-vi.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }))
+// Dashboard cards deep-link here with query params; tests set them via `searchParams`.
+let searchParams = new URLSearchParams()
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+  useSearchParams: () => [searchParams, vi.fn()],
+}))
 vi.mock('@/services/inventory', () => ({ listInventory: vi.fn(), deleteItem: vi.fn() }))
 vi.mock('@/services/household', () => ({ listHouseholds: vi.fn() }))
 vi.mock('@/services/location', () => ({ listHouseholdLocations: vi.fn() }))
@@ -77,6 +82,7 @@ const household = (over: Partial<householdSvc.HouseholdWithRole> = {}): househol
 describe('Inventory page', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    searchParams = new URLSearchParams()
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     useAuthStore.setState({ user: { id: 1, email: 'a@b.c' } as never, refreshToken: 'ref-1' })
@@ -284,5 +290,101 @@ describe('Inventory page', () => {
       'src',
       '/pantrie-logo-light.png'
     )
+  })
+
+  it('navigates to the dashboard from the header', async () => {
+    render(<Inventory />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Dashboard' }))
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+  })
+
+  describe('dashboard deep-link filters', () => {
+    it('applies the expired filter from the query string', async () => {
+      searchParams = new URLSearchParams({
+        expired: 'true',
+        sort_by: 'expiration_date',
+        sort_order: 'asc',
+      })
+      render(<Inventory />)
+      await screen.findByTestId('inventory-list')
+      await waitFor(() =>
+        expect(mockListInventory).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({
+            expired: true,
+            sort_by: 'expiration_date',
+            sort_order: 'asc',
+          })
+        )
+      )
+      expect(screen.getByText(/Showing expired items/)).toBeInTheDocument()
+    })
+
+    it('applies the expiring-soon and low-stock filters', async () => {
+      searchParams = new URLSearchParams({
+        expiring_within_days: '7',
+        low_stock_threshold: '1',
+      })
+      render(<Inventory />)
+      await screen.findByTestId('inventory-list')
+      await waitFor(() =>
+        expect(mockListInventory).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ expiring_within_days: 7, low_stock_threshold: 1 })
+        )
+      )
+      expect(
+        screen.getByText(/items expiring within 7 days and items with quantity of 1 or less/)
+      ).toBeInTheDocument()
+    })
+
+    it('ignores non-numeric filter values', async () => {
+      searchParams = new URLSearchParams({ expiring_within_days: 'soon', location_id: '' })
+      render(<Inventory />)
+      await screen.findByTestId('inventory-list')
+      await waitFor(() =>
+        expect(mockListInventory).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ expiring_within_days: undefined, location_id: undefined })
+        )
+      )
+      expect(screen.queryByText('Clear filter')).not.toBeInTheDocument()
+    })
+
+    it('preselects the deep-linked location', async () => {
+      searchParams = new URLSearchParams({ location_id: '5' })
+      mockListLocations.mockResolvedValue([
+        {
+          id: 5,
+          household_id: 1,
+          name: 'Pantry',
+          icon: '🥫',
+          created_at: '',
+          updated_at: '',
+        } as locationSvc.Location,
+      ])
+      render(<Inventory />)
+      await screen.findByTestId('inventory-list')
+      await waitFor(() =>
+        expect(mockListInventory).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ location_id: 5 })
+        )
+      )
+    })
+
+    it('clears the filter by navigating back to the plain inventory', async () => {
+      searchParams = new URLSearchParams({ expired: 'true' })
+      render(<Inventory />)
+      fireEvent.click(await screen.findByRole('button', { name: 'Clear filter' }))
+      expect(mockNavigate).toHaveBeenCalledWith('/inventory')
+    })
+
+    it('explains an empty result when a filter is applied', async () => {
+      searchParams = new URLSearchParams({ expired: 'true' })
+      mockListInventory.mockResolvedValue(listResponse({ items: [], total: 0 }))
+      render(<Inventory />)
+      expect(await screen.findByText('No items match this filter')).toBeInTheDocument()
+    })
   })
 })

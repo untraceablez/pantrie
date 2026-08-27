@@ -45,3 +45,69 @@ apiClient.interceptors.response.use(
 
 export { apiClient }
 export type { AxiosError }
+
+// ---------------------------------------------------------------------------
+// Dashboard summary (issue #72)
+// ---------------------------------------------------------------------------
+
+export interface DashboardCounts {
+  total_items: number
+  expired: number
+  expiring_soon: number
+  low_stock: number
+  no_expiration_date: number
+}
+
+export interface DashboardLocationBreakdown {
+  location_id: number | null
+  name: string
+  icon: string | null
+  item_count: number
+}
+
+export interface DashboardCategoryBreakdown {
+  category_id: number | null
+  name: string
+  icon: string | null
+  item_count: number
+}
+
+export interface DashboardRecentItem {
+  id: number
+  name: string
+  brand: string | null
+  /** Pydantic serialises Decimal as a JSON string (e.g. "2.00") */
+  quantity: string
+  unit: string | null
+  expiration_date: string | null
+  created_at: string
+}
+
+export interface DashboardSummary {
+  household_id: number
+  generated_on: string
+  expiring_within_days: number
+  /** Pydantic serialises Decimal as a JSON string (e.g. "1") */
+  low_stock_threshold: string
+  counts: DashboardCounts
+  by_location: DashboardLocationBreakdown[]
+  by_category: DashboardCategoryBreakdown[]
+  recently_added: DashboardRecentItem[]
+}
+
+export interface DashboardSummaryParams {
+  expiring_within_days?: number
+  low_stock_threshold?: number
+  recent_limit?: number
+}
+
+export const getDashboardSummary = async (
+  householdId: number,
+  params?: DashboardSummaryParams
+): Promise<DashboardSummary> => {
+  const response = await apiClient.get<DashboardSummary>(
+    `/dashboard/households/${householdId}/summary`,
+    { params }
+  )
+  return response.data
+}
