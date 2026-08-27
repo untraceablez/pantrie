@@ -105,6 +105,21 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
 
+    # Scheduled Notifications
+    # The daily expiration / low-stock digest is driven by an in-process
+    # APScheduler job (see src/core/scheduler.py). It assumes a SINGLE backend
+    # instance: every process that starts the scheduler runs the job, so scale
+    # out by disabling it everywhere but one replica.
+    NOTIFICATIONS_SCHEDULER_ENABLED: bool = True
+    NOTIFICATIONS_SCHEDULE_HOUR: int = Field(default=8, ge=0, le=23)
+    NOTIFICATIONS_SCHEDULE_MINUTE: int = Field(default=0, ge=0, le=59)
+    NOTIFICATIONS_TIMEZONE: str = "UTC"
+    # Fallback window for "expiring soon" when SystemSettings has no
+    # expiry_warning_days row yet; the stored value wins when present.
+    NOTIFICATIONS_EXPIRY_WARNING_DAYS: int = Field(default=7, ge=1, le=365)
+    # An item is "low stock" when its quantity is at or below this threshold.
+    NOTIFICATIONS_LOW_STOCK_THRESHOLD: float = Field(default=1.0, ge=0)
+
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 60
     # Per-API-client rate limit (Mealie integration); independent of user limits

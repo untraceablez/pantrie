@@ -1,4 +1,9 @@
 """Inventory service for managing inventory items."""
+from collections.abc import Sequence
+from datetime import date, timedelta
+from decimal import Decimal
+from typing import Any
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +11,7 @@ from src.core.exceptions import AuthorizationError, NotFoundError
 from src.core.logging import setup_logging
 from src.models.household_membership import MemberRole
 from src.models.inventory_item import InventoryItem
+from src.models.location import Location
 from src.schemas.inventory import InventoryItemCreate, InventoryItemUpdate
 from src.services.household_service import HouseholdService
 
@@ -255,3 +261,88 @@ class InventoryService:
         )
 
         return items, total
+
+    async def get_expiring_items(
+        self, household_id: int, within_days: int = 7
+    ) -> list[InventoryItem]:
+        """
+        List items that are already expired or expire within the next N days.
+
+        Used by the scheduled notification job, so it takes no ``user_id`` and
+        performs no membership check — callers must scope access themselves.
+
+        Args:
+            household_id: ID of the household
+            within_days: Size of the look-ahead window, in days
+
+        Returns:
+            Items with an expiration date at or before the cutoff, soonest
+            first. Each item carries a transient ``location`` attribute (the
+            joined ``Location`` row or ``None``) for notification rendering.
+        """
+        cutoff = date.today() + timedelta(days=within_days)
+
+        result = await self.db.execute(
+            select(InventoryItem, Location)
+            .outerjoin(Location, InventoryItem.location_id == Location.id)
+            .where(
+                InventoryItem.household_id == household_id,
+                InventoryItem.expiration_date.is_not(None),
+                InventoryItem.expiration_date <= cutoff,
+            )
+            .order_by(InventoryItem.expiration_date.asc())
+        )
+
+        return self._attach_locations(result.all())
+
+    async def get_low_stock_items(
+        self, household_id: int, threshold: float = 1.0
+    ) -> list[InventoryItem]:
+        """
+        List items whose quantity has dropped to or below a threshold.
+
+        Used by the scheduled notification job, so it takes no ``user_id`` and
+        performs no membership check — callers must scope access themselves.
+
+        Args:
+            household_id: ID of the household
+            threshold: Quantity at or below which an item counts as low stock
+
+        Returns:
+            Matching items, lowest quantity first. Each item carries a
+            transient ``location`` attribute (the joined ``Location`` row or
+            ``None``) for notification rendering.
+        """
+        result = await self.db.execute(
+            select(InventoryItem, Location)
+            .outerjoin(Location, InventoryItem.location_id == Location.id)
+            .where(
+                InventoryItem.household_id == household_id,
+                InventoryItem.quantity <= Decimal(str(threshold)),
+            )
+            .order_by(InventoryItem.quantity.asc())
+        )
+
+        return self._attach_locations(result.all())
+
+    @staticmethod
+    def _attach_locations(rows: Sequence[Any]) -> list[InventoryItem]:
+        """Attach each joined Location to its item as a plain attribute.
+
+        ``InventoryItem`` maps ``location_id`` but declares no ``location``
+        relationship, while the notification templates read ``item.location``.
+        Setting the unmapped attribute here keeps those templates working
+        without a lazy load (async SQLAlchemy has none) and without touching
+        the shared model.
+
+        Args:
+            rows: ``(InventoryItem, Location | None)`` rows from a join
+
+        Returns:
+            The items, each with ``location`` set.
+        """
+        items: list[InventoryItem] = []
+        for item, location in rows:
+            item.location = location  # type: ignore[attr-defined]
+            items.append(item)
+        return items

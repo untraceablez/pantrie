@@ -28,6 +28,10 @@ aioredis==2.0.1
 celery==5.3.4
 flower==2.0.1
 
+# In-process job scheduling (daily expiration / low-stock notifications).
+# Single-instance only: every worker that starts the scheduler runs the job.
+APScheduler==3.10.4
+
 # HTTP Client
 httpx==0.25.1
 aiohttp==3.9.1

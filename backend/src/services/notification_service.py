@@ -4,19 +4,30 @@ Notification service for sending notifications via email and webhooks.
 import hmac
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import httpx
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import Settings, get_settings
+from src.core.logging import setup_logging
+from src.models.household_membership import HouseholdMembership
+from src.models.notification_dispatch import NotificationDispatch
 from src.models.system_settings import SystemSettings
 from src.models.webhook import Webhook
 from src.models.user import User
 from src.models.household import Household
 from src.models.inventory_item import InventoryItem
 from src.services.email_service import EmailService
+from src.services.inventory_service import InventoryService
+
+logger = setup_logging()
+
+# Event types the daily digest can dispatch; mirrors the webhook vocabulary.
+EVENT_EXPIRING_ITEMS = "expiring_items"
+EVENT_LOW_STOCK = "low_stock"
 
 
 class NotificationService:
@@ -27,6 +38,17 @@ class NotificationService:
         """Get notification settings from database."""
         result = await db.execute(select(SystemSettings))
         return result.scalar_one_or_none()
+
+    @staticmethod
+    def _location_name(item: Any) -> str:
+        """Name of an item's storage location, or 'Unknown'.
+
+        ``InventoryItem`` has no mapped ``location`` relationship, so the
+        attribute is only present when a caller attaches it (see
+        ``InventoryService._attach_locations``).
+        """
+        location = getattr(item, "location", None)
+        return location.name if location is not None else "Unknown"
 
     @staticmethod
     async def send_webhook(
@@ -117,7 +139,7 @@ class NotificationService:
             {
                 "name": item.name,
                 "expiration_date": item.expiration_date.isoformat() if item.expiration_date else None,
-                "location": item.location.name if item.location else "Unknown",
+                "location": NotificationService._location_name(item),
                 "quantity": item.quantity,
             }
             for item in items
@@ -420,7 +442,7 @@ class NotificationService:
             {
                 "name": item.name,
                 "quantity": item.quantity,
-                "location": item.location.name if item.location else "Unknown",
+                "location": NotificationService._location_name(item),
             }
             for item in items
         ]
@@ -549,3 +571,253 @@ class NotificationService:
             html_body=html_body,
             text_body=text_body,
         )
+
+    # ------------------------------------------------------------------ #
+    # Scheduled daily digest
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    async def already_dispatched(
+        db: AsyncSession,
+        household_id: int,
+        event_type: str,
+        on_date: date,
+    ) -> bool:
+        """
+        Check whether a digest already went out for a household today.
+
+        Args:
+            db: Database session
+            household_id: Household the digest belongs to
+            event_type: 'expiring_items' or 'low_stock'
+            on_date: Day to check
+
+        Returns:
+            True if a dispatch has already been recorded for that day
+        """
+        result = await db.execute(
+            select(NotificationDispatch.id).where(
+                NotificationDispatch.household_id == household_id,
+                NotificationDispatch.event_type == event_type,
+                NotificationDispatch.dispatch_date == on_date,
+            )
+        )
+        return result.scalars().first() is not None
+
+    @staticmethod
+    async def record_dispatch(
+        db: AsyncSession,
+        household_id: int,
+        event_type: str,
+        on_date: date,
+        item_count: int,
+        results: Dict[str, int],
+    ) -> NotificationDispatch:
+        """
+        Record that a digest was dispatched, so it is not sent again today.
+
+        Args:
+            db: Database session
+            household_id: Household the digest belongs to
+            event_type: 'expiring_items' or 'low_stock'
+            on_date: Day the digest was dispatched
+            item_count: Number of items in the digest
+            results: Counts returned by the notify_* orchestrator
+
+        Returns:
+            The persisted dispatch record
+        """
+        record = NotificationDispatch(
+            household_id=household_id,
+            event_type=event_type,
+            dispatch_date=on_date,
+            item_count=item_count,
+            emails_sent=results.get("emails_sent", 0),
+            webhooks_sent=results.get("webhooks_sent", 0),
+        )
+        db.add(record)
+        await db.commit()
+        return record
+
+    @staticmethod
+    async def get_household_recipients(
+        db: AsyncSession, household_id: int
+    ) -> List[User]:
+        """
+        Get the active users who should receive a household's notifications.
+
+        Args:
+            db: Database session
+            household_id: Household to look up members for
+
+        Returns:
+            Active members of the household, ordered by user ID
+        """
+        result = await db.execute(
+            select(User)
+            .join(HouseholdMembership, HouseholdMembership.user_id == User.id)
+            .where(
+                HouseholdMembership.household_id == household_id,
+                User.is_active.is_(True),
+            )
+            .order_by(User.id)
+        )
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def _dispatch_digest(
+        db: AsyncSession,
+        event_type: str,
+        household: Household,
+        recipients: List[User],
+        items: List[InventoryItem],
+        on_date: date,
+        summary: Dict[str, int],
+    ) -> None:
+        """Send one household's digest for one event type, once per day."""
+        if not items:
+            return
+
+        if await NotificationService.already_dispatched(
+            db, household.id, event_type, on_date
+        ):
+            summary["skipped_duplicates"] += 1
+            logger.info(
+                "Digest already dispatched today, skipping",
+                household_id=household.id,
+                event_type=event_type,
+                dispatch_date=on_date.isoformat(),
+            )
+            return
+
+        if event_type == EVENT_EXPIRING_ITEMS:
+            results = await NotificationService.notify_expiring_items(
+                db, items, household, recipients
+            )
+        else:
+            results = await NotificationService.notify_low_stock(
+                db, items, household, recipients
+            )
+
+        await NotificationService.record_dispatch(
+            db,
+            household_id=household.id,
+            event_type=event_type,
+            on_date=on_date,
+            item_count=len(items),
+            results=results,
+        )
+
+        summary[f"{event_type}_dispatched"] += 1
+        summary["emails_sent"] += results.get("emails_sent", 0)
+        summary["webhooks_sent"] += results.get("webhooks_sent", 0)
+        logger.info(
+            "Digest dispatched",
+            household_id=household.id,
+            event_type=event_type,
+            item_count=len(items),
+            emails_sent=results.get("emails_sent", 0),
+            webhooks_sent=results.get("webhooks_sent", 0),
+        )
+
+    @staticmethod
+    async def run_daily_notifications(
+        db: AsyncSession,
+        app_settings: Optional[Settings] = None,
+        on_date: Optional[date] = None,
+    ) -> Dict[str, int]:
+        """
+        Send the daily expiring-items and low-stock digests for every household.
+
+        Reuses the existing email and webhook delivery paths and honours the
+        flags stored in ``SystemSettings``. Each (household, event type) pair
+        is dispatched at most once per day, so running the job again — after a
+        restart, or via an APScheduler misfire catch-up — is a no-op.
+
+        Args:
+            db: Database session
+            app_settings: Application settings (defaults to the cached ones)
+            on_date: Day the digests belong to (defaults to today)
+
+        Returns:
+            Dict of per-run counters (households processed, digests dispatched,
+            duplicates skipped, errors, emails and webhooks sent)
+        """
+        config = app_settings or get_settings()
+        run_date = on_date or date.today()
+        summary = {
+            "households_processed": 0,
+            f"{EVENT_EXPIRING_ITEMS}_dispatched": 0,
+            f"{EVENT_LOW_STOCK}_dispatched": 0,
+            "skipped_duplicates": 0,
+            "errors": 0,
+            "emails_sent": 0,
+            "webhooks_sent": 0,
+        }
+
+        settings = await NotificationService.get_notification_settings(db)
+        if not settings:
+            logger.info("Daily notification job skipped: system settings not configured")
+            return summary
+
+        if not settings.notify_expiring_items and not settings.notify_low_stock:
+            logger.info("Daily notification job skipped: all digests disabled")
+            return summary
+
+        within_days = (
+            settings.expiry_warning_days or config.NOTIFICATIONS_EXPIRY_WARNING_DAYS
+        )
+        threshold = config.NOTIFICATIONS_LOW_STOCK_THRESHOLD
+        inventory_service = InventoryService(db)
+
+        # IDs, not ORM rows: a rollback below expires loaded instances, so each
+        # household is re-fetched inside its own iteration.
+        result = await db.execute(select(Household.id).order_by(Household.id))
+        household_ids = list(result.scalars().all())
+
+        for household_id in household_ids:
+            summary["households_processed"] += 1
+            try:
+                household = await db.get(Household, household_id)
+                recipients = await NotificationService.get_household_recipients(
+                    db, household.id
+                )
+
+                if settings.notify_expiring_items:
+                    expiring = await inventory_service.get_expiring_items(
+                        household.id, within_days
+                    )
+                    await NotificationService._dispatch_digest(
+                        db,
+                        event_type=EVENT_EXPIRING_ITEMS,
+                        household=household,
+                        recipients=recipients,
+                        items=expiring,
+                        on_date=run_date,
+                        summary=summary,
+                    )
+
+                if settings.notify_low_stock:
+                    low_stock = await inventory_service.get_low_stock_items(
+                        household.id, threshold
+                    )
+                    await NotificationService._dispatch_digest(
+                        db,
+                        event_type=EVENT_LOW_STOCK,
+                        household=household,
+                        recipients=recipients,
+                        items=low_stock,
+                        on_date=run_date,
+                        summary=summary,
+                    )
+            except Exception as exc:  # one bad household must not stop the run
+                summary["errors"] += 1
+                await db.rollback()
+                logger.error(
+                    "Daily notification digest failed for household",
+                    household_id=household_id,
+                    error=str(exc),
+                )
+
+        logger.info("Daily notification job complete", **summary)
+        return summary

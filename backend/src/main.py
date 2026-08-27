@@ -16,6 +16,7 @@ from src.api.v1 import allergen, api_clients, auth, barcode, client_gateway, ema
 from src.config import get_settings
 from src.core.exceptions import PantrieException
 from src.core.logging import setup_logging
+from src.core.scheduler import shutdown_scheduler, start_scheduler
 from src.db.session import get_db
 from src.models.system_settings import SystemSettings
 
@@ -55,7 +56,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # a BaseException not caught above — propagates instead of being swallowed.
         break
 
+    # Background jobs (daily expiring-items / low-stock digests). Inert in the
+    # test environment and when disabled by configuration; start_scheduler is
+    # itself defensive and never raises, so startup cannot fail here.
+    start_scheduler(settings)
+
     yield
+
+    shutdown_scheduler()
     logger.info("Application shutting down")
 
 
